@@ -5,12 +5,16 @@ Embedding cache and vector operations.
 from sqlalchemy import Column, Integer, String, Text, DateTime, LargeBinary
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.dialects.postgresql import ARRAY, Float
+from pgvector.sqlalchemy import Vector
 from app.models.database import Base
+from app.config.settings import Settings
 from datetime import datetime, timedelta
 from typing import List, Optional
 import pickle
 import hashlib
+
+# Get settings instance
+settings = Settings()
 
 
 class EmbeddingCache(Base):
@@ -21,7 +25,7 @@ class EmbeddingCache(Base):
     id = Column(Integer, primary_key=True, index=True)
     text_hash = Column(String(64), unique=True, index=True, nullable=False)
     text_preview = Column(String(200), nullable=False)  # First 200 chars for debugging
-    embedding = Column(ARRAY(Float), nullable=False)
+    embedding = Column(Vector(settings.EMBEDDING_DIMENSION), nullable=False)
     model_name = Column(String(100), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     accessed_at = Column(DateTime, default=datetime.utcnow)

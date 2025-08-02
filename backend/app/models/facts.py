@@ -6,11 +6,15 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Floa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import ARRAY
+from pgvector.sqlalchemy import Vector
 from app.models.database import Base
+from app.config.settings import Settings
 from datetime import datetime
 from typing import List, Optional, Tuple
 import enum
+
+# Get settings instance
+settings = Settings()
 
 
 class FactType(enum.Enum):
@@ -38,8 +42,7 @@ class UserFact(Base):
     entry_id = Column(Integer, ForeignKey("journal_entries.id"), nullable=False)
     
     # Vector embedding for similarity search (pgvector type)
-    # Note: This would be a vector type in production with pgvector
-    embedding_vector = Column(ARRAY(Float), nullable=True)
+    embedding_vector = Column(Vector(settings.EMBEDDING_DIMENSION), nullable=True)
     
     # Relationships
     entry = relationship("JournalEntry", back_populates="facts")
@@ -125,23 +128,17 @@ class UserFact(Base):
     ) -> List[Tuple["UserFact", float]]:
         """
         Find similar facts using vector similarity.
-        
-        TODO: Implement proper pgvector similarity search:
-        SELECT *, (embedding_vector <-> %s) as distance 
-        FROM user_facts 
-        ORDER BY distance 
-        LIMIT %s
+        Uses pgvector cosine distance for similarity search.
         """
-        # Placeholder implementation - in production use pgvector
+        # Use pgvector's cosine distance operator
         result = await session.execute(
-            select(cls)
-            .order_by(cls.timestamp.desc())
+            select(cls, (cls.embedding_vector.cosine_distance(query_embedding)).label('distance'))
+            .where(cls.embedding_vector.is_not(None))
+            .order_by(cls.embedding_vector.cosine_distance(query_embedding))
             .limit(limit)
         )
-        facts = result.scalars().all()
         
-        # Mock similarity scores for now
-        return [(fact, 0.1 + (i * 0.1)) for i, fact in enumerate(facts)]
+        return [(fact, distance) for fact, distance in result.all()]
     
     @classmethod
     async def get_by_entry_id(cls, session: AsyncSession, entry_id: int) -> List["UserFact"]:

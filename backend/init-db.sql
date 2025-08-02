@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS user_facts (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     original_snippet TEXT,
     entry_id INTEGER REFERENCES journal_entries(id) ON DELETE CASCADE,
-    embedding_vector vector(384)  -- 384 dimensions for all-MiniLM-L6-v2
+    embedding_vector vector(384)  -- Vector dimension should match EMBEDDING_DIMENSION in settings (384 for all-MiniLM-L6-v2, 1536 for OpenAI)
 );
 
 -- Embedding cache table
@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS embedding_cache (
     id SERIAL PRIMARY KEY,
     text_hash VARCHAR(64) UNIQUE NOT NULL,
     text_preview VARCHAR(200) NOT NULL,
-    embedding vector(384) NOT NULL,
+    embedding vector(384) NOT NULL,  -- Vector dimension should match EMBEDDING_DIMENSION in settings
     model_name VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

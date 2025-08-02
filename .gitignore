@@ -155,7 +155,6 @@ temp/
 *.sw?
 
 # AI/ML models (large files)
-models/
 *.model
 *.pkl
 *.h5

@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     
     # AI Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_DIMENSION: int = 1536  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
     SYSTEM_PROMPT: str = "You are a helpful AI assistant for journaling and self-reflection."
     MAX_FACTS_PER_ENTRY: int = 20
     
