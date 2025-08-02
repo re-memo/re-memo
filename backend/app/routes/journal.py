@@ -140,6 +140,7 @@ async def update_entry(entry_id):
                 update_data['title'] = data['title']
             if 'content' in data:
                 update_data['content'] = data['content']
+            # TODO - BUG: if status set as "complete" it should trigger AI processing, but it's not
             if 'status' in data:
                 from app.models.journal import EntryStatus
                 try:
