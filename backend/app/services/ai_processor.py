@@ -9,6 +9,7 @@ from app.services.llm_client import LLMClient
 from app.services.embeddings import EmbeddingService
 from app.models.facts import UserFact, FactType
 from app.config.settings import settings
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -126,19 +127,22 @@ Extract facts, events, and insights from this journal entry:"""
             # Prepare context from user's facts
             fact_context = ""
             if user_facts:
-                fact_context = "Based on your previous entries, here are some related facts:\n"
-                for fact in user_facts[:5]:  # Limit to 5 most relevant facts
-                    fact_context += f"- {fact.content} (from {fact.timestamp.strftime('%Y-%m-%d')})\n"
+                # Randomly select a single fact to keep the context concise
+                selected_fact = random.choice(user_facts)
+                fact_context = (f"- {selected_fact.content} (from {selected_fact.timestamp.strftime('%Y-%m-%d')})\n")
+                # fact_context = "Based on your previous entries, here are some related facts:\n"
+                # for fact in user_facts[:5]:  # Limit to 5 most relevant facts
+                #     fact_context += f"- {fact.content} (from {fact.timestamp.strftime('%Y-%m-%d')})\n"
             
             system_prompt = f"""You are a thoughtful journaling assistant. Generate a personalized writing prompt for the topic "{topic}".
 
 The prompt should:
-- Be thought-provoking and encourage reflection
-- Connect to the user's previous experiences when possible
+- Start by mentioning the user entry related to the topic, provided in the Fact context section below
 - Be specific enough to inspire writing but open enough for creativity
 - Encourage introspection and personal growth
-- Be 1-3 sentences long
+- Be concise, no more than 1-3 sentences long
 
+Fact context:
 {fact_context}"""
 
             user_prompt = f"Generate a writing prompt for the topic: {topic}"
@@ -172,9 +176,7 @@ The prompt should:
 Your review should:
 - Acknowledge the user's thoughts and experiences
 - Identify patterns, growth, or recurring themes when possible
-- Offer gentle insights or reflections
-- Be encouraging and supportive
-- Be 2-4 sentences long
+- Be concise, no more than 2-4 sentences long
 - Avoid being overly clinical or therapeutic
 
 Focus on being a caring, observant friend who notices details and patterns."""

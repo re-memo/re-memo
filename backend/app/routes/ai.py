@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 bp = Blueprint('ai', __name__)
 
-
+# TODO: remove from route and include process_entry as a service called when journal entry is set to completed
 @bp.route('/process-entry', methods=['POST'])
 async def process_entry():
     """Process a journal entry to extract facts and events."""
@@ -53,6 +53,45 @@ async def process_entry():
     except Exception as e:
         logger.error(f"Error processing entry: {str(e)}")
         return jsonify({"error": "Failed to process entry"}), 500
+
+# TODO: remove from route and include review_entry as a service called when journal entry is set to completed
+@bp.route('/review-entry', methods=['POST'])
+async def review_entry():
+    """Generate an AI review for a journal entry."""
+    try:
+        data = await request.get_json()
+        
+        if not data or not data.get('entry_id'):
+            return jsonify({"error": "Entry ID is required"}), 400
+        
+        entry_id = data['entry_id']
+        
+        async with get_db_session() as session:
+            entry = await JournalEntry.get_by_id(session, entry_id)
+            
+            if not entry:
+                return jsonify({"error": "Entry not found"}), 404
+            
+            # Find related facts for context
+            vector_search = VectorSearchService()
+            related_facts = await vector_search.find_related_facts_for_entry(
+                session, entry.content, entry_id, 10
+            )
+            
+            # Generate review using AI
+            ai_processor = AIProcessor()
+            review = await ai_processor.review_entry(entry.content, related_facts)
+            
+            return jsonify({
+                "entry_id": entry_id,
+                "review": review,
+                "related_facts_count": len(related_facts),
+                "related_facts": [fact.to_dict() for fact in related_facts[:5]]
+            })
+            
+    except Exception as e:
+        logger.error(f"Error reviewing entry: {str(e)}")
+        return jsonify({"error": "Failed to generate review"}), 500
 
 
 @bp.route('/topics', methods=['GET'])
@@ -103,46 +142,31 @@ async def suggest_prompt():
         logger.error(f"Error generating prompt: {str(e)}")
         return jsonify({"error": "Failed to generate prompt"}), 500
 
-
-@bp.route('/review-entry', methods=['POST'])
-async def review_entry():
-    """Generate an AI review for a journal entry."""
+@bp.route('/health', methods=['GET'])
+async def ai_health_check():
+    """Check AI services health."""
     try:
-        data = await request.get_json()
+        ai_processor = AIProcessor()
         
-        if not data or not data.get('entry_id'):
-            return jsonify({"error": "Entry ID is required"}), 400
+        # Check LLM client
+        llm_health = await ai_processor.llm_client.health_check()
         
-        entry_id = data['entry_id']
+        # Check embedding service
+        embedding_stats = await ai_processor.embedding_service.get_embedding_stats()
         
-        async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
-            
-            if not entry:
-                return jsonify({"error": "Entry not found"}), 404
-            
-            # Find related facts for context
-            vector_search = VectorSearchService()
-            related_facts = await vector_search.find_related_facts_for_entry(
-                session, entry.content, entry_id, 10
-            )
-            
-            # Generate review using AI
-            ai_processor = AIProcessor()
-            review = await ai_processor.review_entry(entry.content, related_facts)
-            
-            return jsonify({
-                "entry_id": entry_id,
-                "review": review,
-                "related_facts_count": len(related_facts),
-                "related_facts": [fact.to_dict() for fact in related_facts[:5]]
-            })
-            
+        return jsonify({
+            "llm_service": llm_health,
+            "embedding_service": {
+                "status": "healthy" if embedding_stats.get("model_loaded") else "degraded",
+                "stats": embedding_stats
+            }
+        })
+        
     except Exception as e:
-        logger.error(f"Error reviewing entry: {str(e)}")
-        return jsonify({"error": "Failed to generate review"}), 500
+        logger.error(f"Error checking AI health: {str(e)}")
+        return jsonify({"error": "Failed to check AI health"}), 500
 
-
+'''
 @bp.route('/search-similar', methods=['POST'])
 async def search_similar():
     """Search for facts similar to a query."""
@@ -294,26 +318,4 @@ async def analyze_patterns():
         return jsonify({"error": "Failed to analyze patterns"}), 500
 
 
-@bp.route('/health', methods=['GET'])
-async def ai_health_check():
-    """Check AI services health."""
-    try:
-        ai_processor = AIProcessor()
-        
-        # Check LLM client
-        llm_health = await ai_processor.llm_client.health_check()
-        
-        # Check embedding service
-        embedding_stats = await ai_processor.embedding_service.get_embedding_stats()
-        
-        return jsonify({
-            "llm_service": llm_health,
-            "embedding_service": {
-                "status": "healthy" if embedding_stats.get("model_loaded") else "degraded",
-                "stats": embedding_stats
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"Error checking AI health: {str(e)}")
-        return jsonify({"error": "Failed to check AI health"}), 500
+'''

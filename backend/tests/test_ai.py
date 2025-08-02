@@ -22,7 +22,17 @@ async def test_process_entry():
         assert "facts_extracted" in data
         print("Facts extracted:", data["facts_extracted"])
 
-'''
+@pytest.mark.asyncio
+async def test_review_entry():
+    print("Starting test_review_entry...")
+    entry_id = 1 # TODO: Replace with a valid entry ID from GET entries
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(f"{BASE_URL}/api/ai/review-entry", json={"entry_id": entry_id})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "review" in data
+        print("Review:", data["review"])
+
 @pytest.mark.asyncio
 async def test_get_topics():
     print("Starting test_get_topics...")
@@ -36,7 +46,7 @@ async def test_get_topics():
 @pytest.mark.asyncio
 async def test_suggest_prompt():
     print("Starting test_suggest_prompt...")
-    topic = "health"
+    topic = "goals" # TODO: Replace with a valid entry ID from GET topics
     async with httpx.AsyncClient() as client:
         resp = await client.post(f"{BASE_URL}/api/ai/suggest-prompt", json={"topic": topic})
         assert resp.status_code == 200
@@ -45,16 +55,18 @@ async def test_suggest_prompt():
         print("Prompt:", data["prompt"])
 
 @pytest.mark.asyncio
-async def test_review_entry():
-    print("Starting test_review_entry...")
-    entry_id = 1
+async def test_ai_health_check():
+    print("Starting test_ai_health_check...")
     async with httpx.AsyncClient() as client:
-        resp = await client.post(f"{BASE_URL}/api/ai/review-entry", json={"entry_id": entry_id})
+        resp = await client.get(f"{BASE_URL}/api/ai/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert "review" in data
-        print("Review:", data["review"])
+        assert "llm_service" in data
+        assert "embedding_service" in data
+        print("LLM health:", data["llm_service"])
+        print("Embedding health:", data["embedding_service"])
 
+'''
 @pytest.mark.asyncio
 async def test_search_similar():
     print("Starting test_search_similar...")
@@ -95,15 +107,4 @@ async def test_analyze_patterns():
         assert "top_topics" in data
         print("Top topics:", data["top_topics"])
 
-@pytest.mark.asyncio
-async def test_ai_health_check():
-    print("Starting test_ai_health_check...")
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{BASE_URL}/api/ai/health")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert "llm_service" in data
-        assert "embedding_service" in data
-        print("LLM health:", data["llm_service"])
-        print("Embedding health:", data["embedding_service"])
 '''
