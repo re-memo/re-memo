@@ -45,7 +45,7 @@ class UserFact(Base):
     embedding_vector = Column(Vector(settings.EMBEDDING_DIMENSION), nullable=True)
     
     # Relationships
-    entry = relationship("JournalEntry", back_populates="facts")
+    entry = relationship("JournalEntry", back_populates="facts", lazy="selectin")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""

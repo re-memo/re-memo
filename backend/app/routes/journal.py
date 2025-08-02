@@ -8,10 +8,31 @@ import logging
 from app.models.database import get_db_session
 from app.models.journal import JournalEntry
 from app.models.facts import UserFact
+import math
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('journal', __name__)
+
+
+def calculate_pagination(page: int, limit: int, total_count: int) -> dict:
+    """Calculate pagination metadata."""
+    # Ensure valid values
+    page = max(1, page)
+    limit = max(1, min(100, limit))  # Limit between 1 and 100
+    
+    total_pages = math.ceil(total_count / limit) if total_count > 0 else 1
+    
+    return {
+        "page": page,
+        "limit": limit,
+        "total_count": total_count,
+        "total_pages": total_pages,
+        "has_next": page < total_pages,
+        "has_prev": page > 1,
+        "start_index": (page - 1) * limit + 1 if total_count > 0 else 0,
+        "end_index": min(page * limit, total_count)
+    }
 
 
 @bp.route('/entries', methods=['GET'])
@@ -24,21 +45,26 @@ async def get_entries():
         
         async with get_db_session() as session:
             if search:
-                entries = await JournalEntry.search(session, search, limit)
-                total_pages = 1  # Simplified for search
+                # Search with pagination
+                entries = await JournalEntry.search(session, search, page, limit)
+                total_count = await JournalEntry.count_search(session, search)
             else:
+                # Regular pagination
                 entries = await JournalEntry.get_all(session, page, limit)
-                # TODO: Implement proper pagination with total count
-                total_pages = 10  # Mock value
+                total_count = await JournalEntry.count_all(session)
+            
+            # Calculate pagination metadata
+            pagination = calculate_pagination(page, limit, total_count)
             
             return jsonify({
                 "entries": [entry.to_dict() for entry in entries],
-                "page": page,
-                "limit": limit,
-                "total_pages": total_pages,
-                "has_next": page < total_pages
+                "search": search if search else None,
+                **pagination
             })
             
+    except ValueError as e:
+        logger.error(f"Invalid pagination parameters: {str(e)}")
+        return jsonify({"error": "Invalid pagination parameters"}), 400
     except Exception as e:
         logger.error(f"Error getting entries: {str(e)}")
         return jsonify({"error": "Failed to retrieve entries"}), 500

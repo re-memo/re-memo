@@ -2,7 +2,7 @@
 Journal entry models and database operations.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import relationship
@@ -31,7 +31,7 @@ class JournalEntry(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationship with user facts
-    facts = relationship("UserFact", back_populates="entry", cascade="all, delete-orphan")
+    facts = relationship("UserFact", back_populates="entry", cascade="all, delete-orphan", lazy="selectin")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
@@ -56,6 +56,25 @@ class JournalEntry(Base):
             .limit(limit)
         )
         return result.scalars().all()
+    
+    @classmethod
+    async def count_all(cls, session: AsyncSession) -> int:
+        """Count total number of journal entries."""
+        result = await session.execute(select(func.count(cls.id)))
+        return result.scalar()
+    
+    @classmethod
+    async def count_search(cls, session: AsyncSession, query: str) -> int:
+        """Count search results for pagination."""
+        search_term = f"%{query}%"
+        result = await session.execute(
+            select(func.count(cls.id))
+            .where(
+                cls.title.ilike(search_term) | 
+                cls.content.ilike(search_term)
+            )
+        )
+        return result.scalar()
     
     @classmethod
     async def get_by_id(cls, session: AsyncSession, entry_id: int) -> Optional["JournalEntry"]:
@@ -91,9 +110,10 @@ class JournalEntry(Base):
         await session.flush()
     
     @classmethod
-    async def search(cls, session: AsyncSession, query: str, limit: int = 20) -> List["JournalEntry"]:
-        """Search journal entries by content or title."""
+    async def search(cls, session: AsyncSession, query: str, page: int = 1, limit: int = 20) -> List["JournalEntry"]:
+        """Search journal entries by content or title with pagination."""
         search_term = f"%{query}%"
+        offset = (page - 1) * limit
         result = await session.execute(
             select(cls)
             .where(
@@ -101,6 +121,7 @@ class JournalEntry(Base):
                 cls.content.ilike(search_term)
             )
             .order_by(cls.updated_at.desc())
+            .offset(offset)
             .limit(limit)
         )
         return result.scalars().all()
