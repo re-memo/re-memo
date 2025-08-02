@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/brain.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>re:memo - AI-Powered Journaling</title>
+    <meta name="description" content="Your AI-powered journaling companion. Capture thoughts, discover patterns, and gain insights with intelligent analysis." />
+    
+    <!-- Preconnect to external domains for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Inter font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Prevent flash of unstyled content -->
+    <style>
+      html {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+      
+      /* Loading spinner for initial load */
+      .loading-spinner {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: 3px solid #f3f4f6;
+        border-top: 3px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        z-index: 9999;
+      }
+      
+      @keyframes spin {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+      }
+      
+      /* Hide spinner when React app loads */
+      .app-loaded .loading-spinner {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <!-- Fallback loading indicator -->
+      <div class="loading-spinner"></div>
+      <noscript>
+        <div style="
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          text-align: center;
+          font-family: system-ui, sans-serif;
+          background: white;
+          padding: 2rem;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          max-width: 400px;
+        ">
+          <h2 style="margin-bottom: 1rem; color: #374151;">JavaScript Required</h2>
+          <p style="color: #6b7280; line-height: 1.5;">
+            re:memo requires JavaScript to run. Please enable JavaScript in your browser settings and refresh the page.
+          </p>
+        </div>
+      </noscript>
+    </div>
+    
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Mark app as loaded to hide spinner -->
+    <script>
+      window.addEventListener('load', () => {
+        document.body.classList.add('app-loaded');
+      });
+    </script>
+  </body>
+</html>
