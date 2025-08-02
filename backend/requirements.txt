@@ -21,3 +21,5 @@ sentence-transformers
 
 # ASGI Server
 uvicorn
+
+openai

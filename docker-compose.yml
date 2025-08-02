@@ -21,7 +21,8 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3.1}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
       - SYSTEM_PROMPT=${SYSTEM_PROMPT:-You are a helpful AI assistant for journaling and self-reflection.}
-      
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1536}
+
       # App Configuration
       - APP_HOST=0.0.0.0
       - APP_PORT=80

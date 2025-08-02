@@ -39,7 +39,8 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-gpt-4o-mini}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-text-embedding-3-small}
       - SYSTEM_PROMPT=${SYSTEM_PROMPT:-You are a helpful AI assistant for journaling and self-reflection.}
-      
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1536}
+
       # App Configuration
       - APP_HOST=0.0.0.0
       - APP_PORT=8080

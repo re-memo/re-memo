@@ -97,8 +97,10 @@ class LLMClient:
             if not self.settings.OPENAI_API_KEY:
                 raise ValueError("OpenAI API key not configured")
             
-            url = "https://api.openai.com/v1/chat/completions"
-            
+            # Use configurable base-URL (works with Requesty, Azure, etc.)
+            base_url = self.settings.OPENAI_BASE_URL.rstrip("/")
+            url = f"{base_url}/chat/completions"
+
             headers = {
                 "Authorization": f"Bearer {self.settings.OPENAI_API_KEY}",
                 "Content-Type": "application/json"
@@ -207,8 +209,10 @@ class LLMClient:
                         "message": "API key not configured"
                     }
                 
-                # Simple test request
-                url = "https://api.openai.com/v1/models"
+                # Simple test request – honour custom base URL
+                base_url = self.settings.OPENAI_BASE_URL.rstrip("/")
+                url = f"{base_url}/models"
+
                 headers = {"Authorization": f"Bearer {self.settings.OPENAI_API_KEY}"}
                 response = await self.client.get(url, headers=headers)
                 response.raise_for_status()
