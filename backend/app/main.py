@@ -5,7 +5,7 @@ Main Quart application entry point for re:memo backend.
 from quart import Quart, jsonify
 from quart_cors import cors
 import os
-from app.config.settings import Settings
+from app.config.settings import settings
 from app.models.database import init_db
 from app.routes import journal, ai, chat
 
@@ -15,8 +15,7 @@ def create_app() -> Quart:
     app = Quart(__name__)
     
     # Load configuration
-    settings = Settings()
-    app.config.update(settings.dict())
+    app.config.update(settings.model_dump())
     
     # Enable CORS
     app = cors(app, allow_origin="*")
@@ -38,6 +37,15 @@ def create_app() -> Quart:
             "version": "1.0.0"
         })
     
+    @app.route('/health')
+    async def health_check_root():
+        """Health check endpoint at root level for Docker."""
+        return jsonify({
+            "status": "healthy",
+            "service": "re:memo-backend",
+            "version": "1.0.0"
+        })
+    
     @app.errorhandler(404)
     async def not_found(error):
         return jsonify({"error": "Not found"}), 404
@@ -51,7 +59,6 @@ def create_app() -> Quart:
 
 if __name__ == '__main__':
     app = create_app()
-    settings = Settings()
     app.run(
         host=settings.APP_HOST,
         port=settings.APP_PORT,

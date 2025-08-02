@@ -6,7 +6,7 @@ import httpx
 import json
 import logging
 from typing import List, Dict, Any, Optional
-from app.config.settings import Settings
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class LLMClient:
     """Unified interface for different LLM providers."""
     
     def __init__(self):
-        self.settings = Settings()
+        self.settings = settings
         self.provider = self.settings.LLM_PROVIDER.lower()
         self.client = httpx.AsyncClient(timeout=60.0)
     
@@ -48,11 +48,10 @@ class LLMClient:
                 return await self._openai_chat_completion(messages, model, temperature, max_tokens)
             else:
                 logger.error(f"Unsupported LLM provider: {self.provider}")
-                return await self._mock_chat_completion(messages)
-                
+                raise ValueError(f"Unsupported LLM provider: {self.provider}")
         except Exception as e:
-            logger.error(f"Error in chat completion: {str(e)}")
-            return await self._mock_chat_completion(messages)
+            logger.error(f"Error in chat completion: {e}")
+            raise
     
     async def _ollama_chat_completion(
         self, 

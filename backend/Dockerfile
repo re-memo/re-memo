@@ -7,25 +7,31 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code and scripts
 COPY app/ ./app/
+COPY migrate.py .
+COPY start.sh .
+
+# Make startup script executable
+RUN chmod +x start.sh
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Expose port
-EXPOSE 8080
+EXPOSE 80
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/api/health || exit 1
+    CMD curl -f http://localhost:80/health || exit 1
 
-# Run application
-CMD ["python", "-m", "app.main"]
+# Run application with startup script
+CMD ["./start.sh"]

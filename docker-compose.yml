@@ -1,135 +1,126 @@
-version: '3.8'
-
 services:
-  # PostgreSQL Database with pgvector extension
-  db:
+  rememo:
+    build: ./backend
+    ports:
+      - "8080:80"
+    environment:
+      # Database Configuration
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=rememo
+      - DB_USER=rememo_user
+      - DB_PASSWORD=rememo_password
+      
+      # LLM Configuration
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}  # ollama or openai
+      - OLLAMA_URL=http://ollama:11434
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      
+      # AI Model Configuration
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3.1}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      - SYSTEM_PROMPT=${SYSTEM_PROMPT:-You are a helpful AI assistant for journaling and self-reflection.}
+      
+      # App Configuration
+      - APP_HOST=0.0.0.0
+      - APP_PORT=80
+      - DEBUG=${DEBUG:-false}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this}
+      
+      # Feature Flags
+      - ENABLE_VOICE=${ENABLE_VOICE:-true}
+      - MAX_ENTRY_LENGTH=${MAX_ENTRY_LENGTH:-10000}
+      - MAX_FACTS_PER_ENTRY=${MAX_FACTS_PER_ENTRY:-20}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - rememo-network
+    profiles:
+      - default
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  postgres:
     image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: rememo
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: rememo_user
+      POSTGRES_PASSWORD: rememo_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     networks:
       - rememo-network
+    profiles:
+      - default
+      - db-selfhost
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rememo_user -d rememo"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     restart: unless-stopped
 
-  # Redis for caching and session storage
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - rememo-network
-    restart: unless-stopped
-
-  # Backend API Server
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/rememo
-      - REDIS_URL=redis://redis:6379
-      - OLLAMA_BASE_URL=http://ollama:11434
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-      - LOG_LEVEL=INFO
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
-      - redis
-    volumes:
-      - ./backend:/app
-      - /app/__pycache__
-    networks:
-      - rememo-network
-    restart: unless-stopped
-    develop:
-      watch:
-        - action: sync
-          path: ./backend
-          target: /app
-          ignore:
-            - __pycache__/
-            - "*.pyc"
-            - .pytest_cache/
-
-  # Frontend Development Server
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000/api
-      - VITE_WS_URL=ws://localhost:8000/ws
-    ports:
-      - "5173:5173"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    networks:
-      - rememo-network
-    restart: unless-stopped
-    develop:
-      watch:
-        - action: sync
-          path: ./frontend/src
-          target: /app/src
-        - action: rebuild
-          path: ./frontend/package.json
-
-  # Ollama for local LLM inference (optional)
   ollama:
     image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
     volumes:
       - ollama_data:/root/.ollama
     networks:
       - rememo-network
-    restart: unless-stopped
-    # Uncomment if you have NVIDIA GPU support
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
-
-  # Nginx reverse proxy (production setup)
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/ssl:/etc/nginx/ssl
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - rememo-network
-    restart: unless-stopped
     profiles:
-      - production
+      - llm-selfhost
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    # Optional: Pull specific models on startup
+    # command: >
+    #   sh -c "ollama serve & 
+    #          sleep 10 && 
+    #          ollama pull llama3.1 && 
+    #          ollama pull nomic-embed-text && 
+    #          wait"
 
 volumes:
   postgres_data:
-  redis_data:
+    driver: local
   ollama_data:
+    driver: local
 
 networks:
   rememo-network:
     driver: bridge
+
+# Usage Examples:
+# 
+# Full self-hosted (with local LLM):
+# docker-compose --profile llm-selfhost --profile db-selfhost up -d
+#
+# Self-hosted DB with external LLM (OpenAI):
+# LLM_PROVIDER=openai OPENAI_API_KEY=your_key docker-compose --profile db-selfhost up -d
+#
+# External DB and LLM (for production):
+# docker-compose up -d rememo
+#
+# Development with only the app:
+# docker-compose up rememo

@@ -8,7 +8,7 @@ from sentence_transformers import SentenceTransformer
 import logging
 from app.models.embeddings import EmbeddingCache
 from app.models.database import get_db_session
-from app.config.settings import Settings
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class EmbeddingService:
     """Service for generating and managing text embeddings."""
     
     def __init__(self):
-        self.settings = Settings()
+        self.settings = settings
         self.model = None
         self.model_name = self.settings.EMBEDDING_MODEL
         self._load_model()

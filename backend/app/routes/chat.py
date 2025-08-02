@@ -3,20 +3,19 @@ Chat interface API routes.
 """
 
 from quart import Blueprint, request, jsonify
-import logging
 from datetime import datetime
 from typing import List, Dict
 from app.models.database import get_db_session
+from app.models.chat import ChatSession, ChatMessage
 from app.models.facts import UserFact
 from app.services.ai_processor import AIProcessor
 from app.services.vector_search import VectorSearchService
+from app.config.settings import settings
+import logging
 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('chat', __name__)
-
-# In-memory chat history storage (in production, use Redis or database)
-chat_sessions = {}
 
 
 @bp.route('/message', methods=['POST'])
@@ -26,60 +25,79 @@ async def send_message():
         data = await request.get_json()
         
         if not data or not data.get('message'):
-            return jsonify({"error": "Message is required"}), 400
+            return jsonify({"error": "Message content is required"}), 400
         
         message = data['message']
-        session_id = data.get('session_id', 'default')
-        
-        # Get or create chat session
-        if session_id not in chat_sessions:
-            chat_sessions[session_id] = []
-        
-        chat_history = chat_sessions[session_id]
-        
-        # Add user message to history
-        user_message = {
-            "role": "user",
-            "content": message,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        chat_history.append(user_message)
+        session_id = data.get('session_id')
         
         async with get_db_session() as session_db:
-            # Search for relevant facts based on the message
-            vector_search = VectorSearchService()
-            relevant_facts = await vector_search.search_similar_facts(
-                session_db, message, limit=8, similarity_threshold=0.5
+            # Get or create chat session
+            if session_id:
+                chat_session = await ChatSession.get_by_id(session_db, session_id)
+                if not chat_session:
+                    return jsonify({"error": "Chat session not found"}), 404
+            else:
+                # Create new session
+                chat_session = await ChatSession.create(session_db, title=f"Chat started at {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}")
+                session_id = chat_session.id
+            
+            # Store user message
+            user_message = await ChatMessage.create(
+                session_db, 
+                session_id, 
+                "user", 
+                message
             )
             
-            # Extract just the facts for context
-            context_facts = [fact for fact, _ in relevant_facts]
+            # Get recent messages for context
+            recent_messages = await ChatMessage.get_recent_messages(session_db, session_id, limit=10)
+            
+            # Get relevant facts for context
+            vector_search = VectorSearchService()
+            relevant_facts = await vector_search.find_related_facts_for_entry(
+                session_db, 
+                message, 
+                limit=5
+            )
             
             # Generate AI response
             ai_processor = AIProcessor()
+            
+            # Convert messages to chat format
+            chat_history = []
+            for msg in recent_messages[:-1]:  # Exclude the current message
+                chat_history.append({
+                    "role": msg.role,
+                    "content": msg.content
+                })
+            
             ai_response = await ai_processor.generate_chat_response(
-                message, chat_history[:-1], context_facts  # Exclude current message from history
+                message, 
+                chat_history, 
+                relevant_facts
             )
             
-            # Add AI response to history
-            ai_message = {
-                "role": "assistant",
-                "content": ai_response,
-                "timestamp": datetime.utcnow().isoformat(),
-                "context_facts_used": len(context_facts)
-            }
-            chat_history.append(ai_message)
+            # Store AI response
+            ai_message = await ChatMessage.create(
+                session_db,
+                session_id,
+                "assistant",
+                ai_response,
+                model_used=settings.DEFAULT_MODEL,  # Use from settings
+                context_facts_count=len(relevant_facts)
+            )
             
-            # Limit chat history size
-            if len(chat_history) > 50:
-                chat_history = chat_history[-40:]  # Keep last 40 messages
-                chat_sessions[session_id] = chat_history
+            # Update session timestamp
+            chat_session.updated_at = datetime.utcnow()
+            
+            # Commit the transaction
+            await session_db.commit()
             
             return jsonify({
-                "response": ai_response,
                 "session_id": session_id,
-                "context_facts_used": len(context_facts),
-                "relevant_facts": [fact.to_dict() for fact, _ in relevant_facts[:3]]  # Show top 3
+                "user_message": user_message.to_dict(),
+                "ai_response": ai_message.to_dict(),
+                "context_facts": [fact.to_dict() for fact in relevant_facts]
             })
             
     except Exception as e:
@@ -91,64 +109,99 @@ async def send_message():
 async def get_chat_history():
     """Get chat history for a session."""
     try:
-        session_id = request.args.get('session_id', 'default')
-        limit = int(request.args.get('limit', 20))
+        session_id = request.args.get('session_id')
+        limit = int(request.args.get('limit', 50))
         
-        chat_history = chat_sessions.get(session_id, [])
+        if not session_id:
+            return jsonify({"error": "Session ID is required"}), 400
         
-        # Return most recent messages
-        recent_history = chat_history[-limit:] if len(chat_history) > limit else chat_history
-        
-        return jsonify({
-            "session_id": session_id,
-            "messages": recent_history,
-            "total_messages": len(chat_history)
-        })
+        async with get_db_session() as session_db:
+            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            if not chat_session:
+                return jsonify({"error": "Chat session not found"}), 404
+            
+            messages = await ChatMessage.get_session_messages(session_db, session_id, limit)
+            
+            return jsonify({
+                "session": chat_session.to_dict(),
+                "messages": [msg.to_dict() for msg in messages],
+                "total_messages": len(messages)
+            })
         
     except Exception as e:
         logger.error(f"Error getting chat history: {str(e)}")
-        return jsonify({"error": "Failed to retrieve chat history"}), 500
+        return jsonify({"error": "Failed to get chat history"}), 500
 
 
 @bp.route('/sessions', methods=['GET'])
 async def get_chat_sessions():
     """Get all chat sessions."""
     try:
-        sessions_info = []
+        limit = int(request.args.get('limit', 20))
         
-        for session_id, history in chat_sessions.items():
-            if history:
-                last_message = history[-1]
-                sessions_info.append({
-                    "session_id": session_id,
-                    "message_count": len(history),
-                    "last_activity": last_message.get("timestamp"),
-                    "last_message_preview": last_message.get("content", "")[:100]
-                })
-        
-        return jsonify({
-            "sessions": sessions_info,
-            "total_sessions": len(sessions_info)
-        })
+        async with get_db_session() as session_db:
+            sessions = await ChatSession.get_all(session_db, limit)
+            
+            sessions_info = []
+            for session in sessions:
+                session_dict = session.to_dict()
+                
+                # Get last message for preview
+                recent_messages = await ChatMessage.get_session_messages(session_db, session.id, limit=1)
+                if recent_messages:
+                    session_dict['last_message'] = recent_messages[-1].to_dict()
+                
+                sessions_info.append(session_dict)
+            
+            return jsonify({
+                "sessions": sessions_info,
+                "total_sessions": len(sessions_info)
+            })
         
     except Exception as e:
         logger.error(f"Error getting chat sessions: {str(e)}")
-        return jsonify({"error": "Failed to retrieve sessions"}), 500
+        return jsonify({"error": "Failed to get chat sessions"}), 500
 
 
 @bp.route('/sessions/<session_id>', methods=['DELETE'])
 async def delete_chat_session(session_id):
     """Delete a chat session."""
     try:
-        if session_id in chat_sessions:
-            del chat_sessions[session_id]
-            return jsonify({"message": f"Session {session_id} deleted successfully"})
-        else:
-            return jsonify({"error": "Session not found"}), 404
+        async with get_db_session() as session_db:
+            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            if not chat_session:
+                return jsonify({"error": "Chat session not found"}), 404
+            
+            await chat_session.delete(session_db)
+            
+            return jsonify({
+                "message": "Chat session deleted successfully",
+                "session_id": session_id
+            })
             
     except Exception as e:
         logger.error(f"Error deleting chat session: {str(e)}")
-        return jsonify({"error": "Failed to delete session"}), 500
+        return jsonify({"error": "Failed to delete chat session"}), 500
+
+
+@bp.route('/sessions', methods=['POST'])
+async def create_chat_session():
+    """Create a new chat session."""
+    try:
+        data = await request.get_json()
+        title = data.get('title') if data else None
+        
+        async with get_db_session() as session_db:
+            chat_session = await ChatSession.create(session_db, title)
+            
+            return jsonify({
+                "session": chat_session.to_dict(),
+                "message": "Chat session created successfully"
+            }), 201
+            
+    except Exception as e:
+        logger.error(f"Error creating chat session: {str(e)}")
+        return jsonify({"error": "Failed to create chat session"}), 500
 
 
 @bp.route('/suggest-questions', methods=['POST'])
@@ -156,188 +209,83 @@ async def suggest_questions():
     """Suggest relevant questions based on user's journal content."""
     try:
         data = await request.get_json()
-        topic = data.get('topic', '') if data else ''
+        context = data.get('context', '') if data else ''
         
-        async with get_db_session() as session:
+        async with get_db_session() as session_db:
             # Get recent facts for context
-            if topic:
-                relevant_facts = await UserFact.get_by_topic(session, topic, 10)
-            else:
-                # Get most recent facts
-                from sqlalchemy.future import select
-                result = await session.execute(
-                    select(UserFact)
-                    .order_by(UserFact.timestamp.desc())
-                    .limit(20)
-                )
-                relevant_facts = result.scalars().all()
+            recent_facts = await UserFact.get_recent(session_db, limit=10)
             
-            # Generate question suggestions using AI
             ai_processor = AIProcessor()
-            
-            # Create a prompt for question generation
-            context = ""
-            if relevant_facts:
-                context = "Based on recent journal entries about:\n"
-                topics_mentioned = list(set(fact.topic for fact in relevant_facts[:10]))
-                context += "\n".join([f"- {topic}" for topic in topics_mentioned])
-            
-            question_prompt = f"""Generate 5 thoughtful questions that would help someone reflect on their experiences and gain insights. 
-            
-            {context}
-            
-            The questions should be:
-            - Open-ended and thought-provoking
-            - Focused on personal growth and reflection
-            - Relevant to the topics mentioned
-            - Encouraging of deeper self-examination
-            
-            Return just the questions, one per line."""
-            
-            messages = [
-                {"role": "system", "content": "You are a thoughtful journaling coach who asks insightful questions."},
-                {"role": "user", "content": question_prompt}
-            ]
-            
-            response = await ai_processor.llm_client.chat_completion(messages)
-            
-            # Parse questions
-            questions = [q.strip() for q in response.split('\n') if q.strip()]
+            questions = await ai_processor.suggest_questions_from_context(context, recent_facts)
             
             return jsonify({
-                "suggested_questions": questions[:5],  # Limit to 5
-                "based_on_topic": topic if topic else "recent entries",
-                "context_facts": len(relevant_facts)
+                "suggested_questions": questions,
+                "context_facts_count": len(recent_facts)
             })
             
     except Exception as e:
         logger.error(f"Error suggesting questions: {str(e)}")
-        return jsonify({
-            "suggested_questions": [
-                "What patterns do you notice in your recent experiences?",
-                "What have you learned about yourself lately?",
-                "What are you most grateful for right now?",
-                "What challenges are you facing and how might you approach them?",
-                "What goals or aspirations are on your mind?"
-            ],
-            "based_on_topic": topic if topic else "general",
-            "context_facts": 0
-        })
+        return jsonify({"error": "Failed to suggest questions"}), 500
 
 
 @bp.route('/quick-insights', methods=['GET'])
 async def get_quick_insights():
     """Get quick insights from recent journal entries."""
     try:
-        days = int(request.args.get('days', 7))
-        
-        async with get_db_session() as session:
-            from datetime import timedelta
-            from sqlalchemy.future import select
-            
+        async with get_db_session() as session_db:
             # Get recent facts
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
-            result = await session.execute(
-                select(UserFact)
-                .where(UserFact.timestamp >= cutoff_date)
-                .order_by(UserFact.timestamp.desc())
-                .limit(30)
-            )
-            recent_facts = result.scalars().all()
+            recent_facts = await UserFact.get_recent(session_db, limit=20)
             
-            if not recent_facts:
-                return jsonify({
-                    "insights": ["Start journaling to get personalized insights!"],
-                    "period_days": days,
-                    "facts_analyzed": 0
-                })
-            
-            # Generate insights using AI
             ai_processor = AIProcessor()
-            
-            # Prepare context for insights
-            facts_summary = "\n".join([
-                f"- {fact.content} ({fact.topic}, {fact.fact_type.value})"
-                for fact in recent_facts[:15]
-            ])
-            
-            insight_prompt = f"""Based on these recent journal entries from the last {days} days, provide 3-5 brief insights about patterns, growth, or notable themes:
-
-{facts_summary}
-
-Return insights that are:
-- Encouraging and supportive
-- Based on observable patterns
-- Focused on growth and self-awareness
-- Brief (1-2 sentences each)
-
-Format as a simple list, one insight per line."""
-
-            messages = [
-                {"role": "system", "content": "You are a supportive AI that helps people understand patterns in their journaling."},
-                {"role": "user", "content": insight_prompt}
-            ]
-            
-            response = await ai_processor.llm_client.chat_completion(messages)
-            
-            # Parse insights
-            insights = [insight.strip() for insight in response.split('\n') if insight.strip()]
+            insights = await ai_processor.generate_quick_insights(recent_facts)
             
             return jsonify({
-                "insights": insights[:5],  # Limit to 5
-                "period_days": days,
+                "insights": insights,
                 "facts_analyzed": len(recent_facts)
             })
             
     except Exception as e:
         logger.error(f"Error getting quick insights: {str(e)}")
-        return jsonify({
-            "insights": [
-                "You're building a great journaling habit!",
-                "Keep reflecting on your experiences to gain deeper insights."
-            ],
-            "period_days": days,
-            "facts_analyzed": 0
-        })
+        return jsonify({"error": "Failed to get quick insights"}), 500
 
 
 @bp.route('/export-chat', methods=['GET'])
 async def export_chat():
     """Export chat history for a session."""
     try:
-        session_id = request.args.get('session_id', 'default')
-        format_type = request.args.get('format', 'json')  # json or text
+        session_id = request.args.get('session_id')
+        format_type = request.args.get('format', 'json')  # json, txt, md
         
-        if session_id not in chat_sessions:
-            return jsonify({"error": "Session not found"}), 404
+        if not session_id:
+            return jsonify({"error": "Session ID is required"}), 400
         
-        chat_history = chat_sessions[session_id]
-        
-        if format_type == 'text':
-            # Format as readable text
-            text_export = f"Chat Session: {session_id}\n"
-            text_export += f"Exported: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}\n"
-            text_export += "=" * 50 + "\n\n"
+        async with get_db_session() as session_db:
+            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            if not chat_session:
+                return jsonify({"error": "Chat session not found"}), 404
             
-            for message in chat_history:
-                role = "You" if message["role"] == "user" else "AI Assistant"
-                timestamp = message.get("timestamp", "")
-                content = message.get("content", "")
+            messages = await ChatMessage.get_session_messages(session_db, session_id, limit=1000)
+            
+            if format_type == 'json':
+                return jsonify({
+                    "session": chat_session.to_dict(),
+                    "messages": [msg.to_dict() for msg in messages],
+                    "exported_at": datetime.utcnow().isoformat()
+                })
+            
+            elif format_type == 'txt':
+                # TODO: Implement text export
+                content = f"Chat Session: {chat_session.title or 'Untitled'}\n"
+                content += f"Exported: {datetime.utcnow().isoformat()}\n\n"
                 
-                text_export += f"{role} [{timestamp}]:\n{content}\n\n"
+                for msg in messages:
+                    content += f"[{msg.role.upper()}] {msg.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
+                    content += f"{msg.content}\n\n"
+                
+                return content, 200, {'Content-Type': 'text/plain'}
             
-            return text_export, 200, {
-                'Content-Type': 'text/plain',
-                'Content-Disposition': f'attachment; filename=chat_{session_id}.txt'
-            }
-        else:
-            # Return JSON format
-            return jsonify({
-                "session_id": session_id,
-                "exported_at": datetime.utcnow().isoformat(),
-                "message_count": len(chat_history),
-                "messages": chat_history
-            })
+            else:
+                return jsonify({"error": "Unsupported export format"}), 400
             
     except Exception as e:
         logger.error(f"Error exporting chat: {str(e)}")

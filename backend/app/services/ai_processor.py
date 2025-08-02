@@ -8,7 +8,7 @@ import logging
 from app.services.llm_client import LLMClient
 from app.services.embeddings import EmbeddingService
 from app.models.facts import UserFact, FactType
-from app.config.settings import Settings
+from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class AIProcessor:
     def __init__(self):
         self.llm_client = LLMClient()
         self.embedding_service = EmbeddingService()
-        self.settings = Settings()
+        self.settings = settings
     
     async def extract_facts_from_entry(self, entry_text: str, entry_title: str = "") -> List[Dict[str, Any]]:
         """
@@ -287,3 +287,54 @@ Focus on:
         except Exception as e:
             logger.error(f"Error suggesting topics: {str(e)}")
             return ["reflection", "growth", "gratitude", "future", "learning"][:limit]
+    
+    async def suggest_questions_from_context(self, context: str, user_facts: List[UserFact]) -> List[str]:
+        """
+        Suggest questions based on context and user's fact history.
+        """
+        try:
+            # TODO: Implement proper question suggestion
+            # For now, return mock suggestions
+            return [
+                "How did this experience make you feel?",
+                "What patterns do you notice in your recent entries?",
+                "What would you like to explore more deeply?",
+                "How has your perspective changed recently?",
+                "What are you most grateful for today?"
+            ]
+            
+        except Exception as e:
+            logger.error(f"Error suggesting questions: {str(e)}")
+            return ["What's on your mind today?"]
+    
+    async def generate_quick_insights(self, recent_facts: List[UserFact]) -> List[str]:
+        """
+        Generate quick insights from recent facts.
+        """
+        try:
+            # TODO: Implement proper insight generation
+            # For now, return mock insights
+            insights = []
+            
+            if recent_facts:
+                insights.append(f"You've been active in journaling with {len(recent_facts)} recent insights captured.")
+                
+                # Group by topic
+                topics = {}
+                for fact in recent_facts[:10]:
+                    topic = fact.topic or "general"
+                    topics[topic] = topics.get(topic, 0) + 1
+                
+                if topics:
+                    top_topic = max(topics.items(), key=lambda x: x[1])
+                    insights.append(f"Your most frequent topic lately has been '{top_topic[0]}' with {top_topic[1]} entries.")
+                
+                insights.append("Consider exploring how these recent experiences connect to your longer-term goals.")
+            else:
+                insights.append("Start journaling to unlock personalized insights about your thoughts and patterns.")
+            
+            return insights
+            
+        except Exception as e:
+            logger.error(f"Error generating quick insights: {str(e)}")
+            return ["Welcome to your journaling journey!"]

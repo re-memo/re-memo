@@ -58,6 +58,7 @@ async def create_entry():
         
         async with get_db_session() as session:
             entry = await JournalEntry.create(session, title, content)
+            await session.commit()
             
             return jsonify({
                 "message": "Entry created successfully",
@@ -122,6 +123,7 @@ async def update_entry(entry_id):
             
             if update_data:
                 await entry.update(session, **update_data)
+                await session.commit()
             
             return jsonify({
                 "message": "Entry updated successfully",
@@ -178,6 +180,9 @@ async def complete_entry(entry_id):
             if facts_data:
                 facts = await UserFact.create_bulk(session, facts_data, entry_id)
                 logger.info(f"Created {len(facts)} facts for entry {entry_id}")
+            
+            # Commit all changes
+            await session.commit()
             
             # Get updated entry with facts
             updated_entry = entry.to_dict()
