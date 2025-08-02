@@ -1,4 +1,5 @@
-# re:memo 📝✨
+# <p align="center" width="100%"><img width="250" height="250" alt="re:memo" align="center" src="https://github.com/user-attachments/assets/142110dc-9567-4e24-9837-e2d4d7d143a5" /><p/>
+
 
 > *AI-assisted journaling that helps you remember, reflect, and grow*
 
