@@ -9,7 +9,9 @@ from app.models.journal import JournalEntry
 from app.models.facts import UserFact
 from app.services.ai_processor import AIProcessor
 from app.services.vector_search import VectorSearchService
-
+from app.models.journal import JournalEntry
+from datetime import datetime
+ 
 logger = logging.getLogger(__name__)
 
 bp = Blueprint('ai', __name__)
@@ -166,7 +168,96 @@ async def ai_health_check():
         logger.error(f"Error checking AI health: {str(e)}")
         return jsonify({"error": "Failed to check AI health"}), 500
 
-'''
+@bp.route('/get-reflection', methods=['POST'])
+async def get_reflection():
+    """
+    Retrieve a reflection that answers a user query by surfacing the most
+    relevant past notes (within an optional date range) and generating a
+    concise AI-written summary that includes direct quotations where possible.
+    """
+    try:
+        data = await request.get_json()
+
+        # ── Validate input ────────────────────────────────────────────────────
+        if not data or not data.get("query"):
+            return jsonify({"error": "Query is required"}), 400
+
+        query: str = data["query"]
+        limit: int = data.get("limit", 5)
+
+        # Optional ISO-8601 dates: "YYYY-MM-DD"
+        start_date = (
+            datetime.fromisoformat(data["start_date"]).date()
+            if data.get("start_date")
+            else None
+        )
+        end_date = (
+            datetime.fromisoformat(data["end_date"]).date()
+            if data.get("end_date")
+            else None
+        )
+
+        async with get_db_session() as session:
+            # ── Step 1: find semantically similar facts ────────────────────
+            vector_search = VectorSearchService()
+            raw_similar = await vector_search.search_similar_facts(
+                session, query, limit * 4
+            )  # (fact, similarity)
+
+            # ── Step 2: filter by date range & de-duplicate by entry ───────
+            relevant_facts = []
+            entries_by_id = {}
+
+            for fact, _score in raw_similar:
+                fact_date = fact.timestamp.date() if fact.timestamp else None
+
+                if start_date and fact_date and fact_date < start_date:
+                    continue
+                if end_date and fact_date and fact_date > end_date:
+                    continue
+
+                if fact.entry_id not in entries_by_id:
+                    entry = await JournalEntry.get_by_id(session, fact.entry_id)
+                    if entry:  # Defensive
+                        entries_by_id[fact.entry_id] = entry
+
+                relevant_facts.append(fact)
+                if len(entries_by_id) >= limit:
+                    break
+
+            relevant_entries = list(entries_by_id.values())
+
+            # ── Step 3: generate reflection text via AIProcessor ───────────
+            ai_processor = AIProcessor()
+            reflection_text = await ai_processor.generate_reflection(
+                query, relevant_entries, relevant_facts
+            )
+
+            # ── Response ────────────────────────────────────────────────────
+            notes_payload = [
+                {
+                    "id": e.id,
+                    "title": e.title,
+                    "date": e.created_at.strftime("%Y-%m-%d")
+                    if getattr(e, "created_at", None)
+                    else None,
+                }
+                for e in relevant_entries
+            ]
+
+            return jsonify(
+                {
+                    "query": query,
+                    "notes": notes_payload,
+                    "notes_count": len(notes_payload),
+                    "reflection": reflection_text,
+                }
+            )
+
+    except Exception as e:
+        logger.error(f"Error getting reflection: {str(e)}")
+        return jsonify({"error": "Failed to get reflection"}), 500
+
 @bp.route('/search-similar', methods=['POST'])
 async def search_similar():
     """Search for facts similar to a query."""
@@ -317,5 +408,3 @@ async def analyze_patterns():
         logger.error(f"Error analyzing patterns: {str(e)}")
         return jsonify({"error": "Failed to analyze patterns"}), 500
 
-
-'''

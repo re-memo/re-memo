@@ -47,9 +47,19 @@ class EmbeddingService:
                 cached_embedding = await EmbeddingCache.get_embedding(
                     session, text, self.model_name
                 )
-                if cached_embedding:
+
+                '''
+                If EmbeddingCache returns a NumPy array (pgvector can be mapped to an ndarray), the if cached_embedding test triggers the exception.
+                By checking against not None instead of agaisnt None the ambiguity disappears, and every embedding your service returns is a plain List[float], so downstream checks such as if fact.embedding_vector: stay safe and predictable.
+                '''
+                if cached_embedding is not None:
                     logger.debug("Using cached embedding")
-                    return cached_embedding
+                    # ensure consistent type across the codebase
+                    return (
+                        cached_embedding.tolist()
+                        if isinstance(cached_embedding, np.ndarray)
+                        else list(cached_embedding)
+                    )
             
             # Generate new embedding
             if self.model is None:

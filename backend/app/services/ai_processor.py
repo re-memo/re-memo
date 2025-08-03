@@ -10,6 +10,7 @@ from app.services.embeddings import EmbeddingService
 from app.models.facts import UserFact, FactType
 from app.config.settings import settings
 import random
+from app.models.journal import JournalEntry
 
 logger = logging.getLogger(__name__)
 
@@ -340,3 +341,61 @@ Focus on:
         except Exception as e:
             logger.error(f"Error generating quick insights: {str(e)}")
             return ["Welcome to your journaling journey!"]
+
+
+    async def generate_reflection(
+        self,
+        query: str,
+        related_entries: List[JournalEntry],
+        related_facts: List[UserFact],
+    ) -> str:
+        """
+        Produce a concise reflection that answers `query`, quoting directly
+        from the most relevant notes when possible.
+        """
+        try:
+            # ── Build quoted context ───────────────────────────────────────
+            quotes_block = ""
+            for fact in related_facts[:10]:
+                snippet = (
+                    fact.original_snippet.strip()
+                    if fact.original_snippet
+                    else fact.content.strip()
+                )
+                entry_title = next(
+                    (e.title for e in related_entries if e.id == fact.entry_id),
+                    "Untitled",
+                )
+                quotes_block += (
+                    f'• "{snippet}" (⟨{entry_title}⟩ – {fact.timestamp.strftime("%Y-%m-%d")})\n'
+                )
+
+            system_prompt = """
+You are an insightful journaling assistant. Use the supplied quotations from
+the user's past notes to answer their question as accurately as possible.
+
+Guidelines:
+- Quote directly from the notes when it clarifies the point (keep quotes short).
+- Reference the date in parentheses after each quote.
+- Stay factual and avoid speculation.
+- Be concise and limit yourself to 2–4 sentences total.
+""".strip()
+
+            user_prompt = f"""User query: {query}
+
+Relevant quotations:
+{quotes_block if quotes_block else "(no relevant quotes found)"}
+
+Craft your answer now."""
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
+
+            reply = await self.llm_client.chat_completion(messages)
+            return reply.strip()
+
+        except Exception as e:
+            logger.error(f"Error generating reflection: {str(e)}")
+            return "I'm unable to surface any related notes at the moment, but I'll keep improving!"

@@ -91,8 +91,33 @@ sample_entries = [
 async def seed_journals():
     async with httpx.AsyncClient() as client:
         for entry in sample_entries:
-            resp = await client.post(f"{BASE_URL}/api/journal/entries", json=entry)
-            print(f"Seeded: {entry['title']} - Status: {resp.status_code}")
+            # 1️⃣  Create the entry
+            resp_create = await client.post(
+                f"{BASE_URL}/api/journal/entries",
+                json=entry,
+            )
+            status = resp_create.status_code
+            if status != 201:
+                print(f"Failed to seed «{entry['title']}» (status {status})")
+                continue
+
+            entry_id = resp_create.json()["entry"]["id"]
+            print(f"Seeded: {entry['title']} (id={entry_id})")
+
+            # 2️⃣  Mark the entry complete to trigger fact extraction
+            resp_complete = await client.post(
+                f"{BASE_URL}/api/journal/entries/{entry_id}/complete"
+            )
+            comp_status = resp_complete.status_code
+            facts_extracted = (
+                resp_complete.json().get("facts_extracted")
+                if comp_status == 200
+                else None
+            )
+            print(
+                f" → Completed (status {comp_status}) – "
+                f"facts_extracted: {facts_extracted}"
+            )
 
 if __name__ == "__main__":
     asyncio.run(seed_journals())

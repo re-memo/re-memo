@@ -7,7 +7,7 @@ BASE_URL = "http://localhost:8080"
 async def test_create_entry():
     print("Starting test_create_entry...")
     async with httpx.AsyncClient() as client:
-        payload = {"title": "Test Entry", "content": "This is a test entry."}
+        payload = {"title": "Cool day", "content": "I had such a nice time play football with my friends."}
         resp = await client.post(f"{BASE_URL}/api/journal/entries", json=payload)
         assert resp.status_code == 201
         data = resp.json()
@@ -43,7 +43,7 @@ async def test_get_entry():
 async def test_update_entry():
     print("Starting test_update_entry...")
     async with httpx.AsyncClient() as client:
-        payload = {"title": "Updated Title"}
+        payload = {"title": "Daily grattitude"}
         resp = await client.put(f"{BASE_URL}/api/journal/entries/{entry_id}", json=payload)
         assert resp.status_code == 200
         data = resp.json()
