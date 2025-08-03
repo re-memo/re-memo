@@ -128,6 +128,16 @@ const api = {
     },
 
     /**
+     * Review an entry
+     */
+    reviewEntry: async (entryId) => {
+      const response = await apiClient.post('/ai/review-entry', {
+        entry_id: entryId
+      }, { timeout: 60000 });
+      return response.data;
+    },
+
+    /**
      * Get recent topics for suggestions
      */
     getTopics: async (limit = 6) => {

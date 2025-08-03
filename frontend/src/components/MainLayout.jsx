@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Menu, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
+import ReviewSidebar from "./ReviewSidebar";
 
 const MainLayout = () => {
+  const { id: entryID } = useParams();
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("darkMode");
     if (saved !== null) {
@@ -69,7 +71,9 @@ const MainLayout = () => {
         {/* Top Bar */}
         <div className="flex items-center justify-between p-4 border-b-4 border-black bg-card h-[73px] relative">
           {/* Hacky hide the left sidebar border with the background color */}
-          {!isMobile && <div className="absolute inset-0 -left-3 w-4 z-50 bg-card" />}
+          {!isMobile && (
+            <div className="absolute inset-0 -left-3 w-4 z-50 bg-card" />
+          )}
           <div className="flex items-center space-x-4">
             {isMobile && (
               <Button
@@ -123,12 +127,24 @@ const MainLayout = () => {
             <Outlet />
           </div>
 
-          {/* Right Sidebar */}
-          <RightSidebar
-            isOpen={rightSidebarOpen}
-            onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
-            isMobile={isMobile}
-          />
+          {/* Right Sidebar if route isn't a journal entry */}
+          {!window.location.pathname.startsWith("/journal/") && (
+            <RightSidebar
+              isOpen={rightSidebarOpen}
+              onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
+              isMobile={isMobile}
+            />
+          )}
+
+          {/* Review Sidebar for journal entries, bit hacky 30 mins left */}
+          {window.location.pathname.startsWith("/journal/") && (
+            <ReviewSidebar
+              isOpen={rightSidebarOpen}
+              onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
+              isMobile={isMobile}
+              entryID={entryID}
+            />
+          )}
         </div>
       </div>
     </div>

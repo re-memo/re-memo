@@ -135,14 +135,14 @@ Extract facts, events, and insights from this journal entry:"""
                 # for fact in user_facts[:5]:  # Limit to 5 most relevant facts
                 #     fact_context += f"- {fact.content} (from {fact.timestamp.strftime('%Y-%m-%d')})\n"
             
-            system_prompt = f"""You are a thoughtful journaling assistant. Generate a personalized writing prompt for the topic "{topic}".
+            system_prompt = f"""You are a thoughtful journaling assistant. Generate a personalized writing suggestions for the topic "{topic}".
 
-The prompt should:
+The suggestions should:
 - Start by mentioning the user entry related to the topic, provided in the Fact context section below
 - Be specific enough to inspire writing but open enough for creativity
 - Encourage introspection and personal growth
 - Be concise, no more than 1-3 sentences long
-- The user needs to be reminded about the context of their previous entries
+- The user **NEEDS TO BE REMINDED** about the context of their previous entries, assume they might not remember
 - Follow the style of "Recent you wrote about..." -> "You could...", but it doesn't have to be exactly those words
 
 Fact context:
@@ -401,3 +401,43 @@ Craft your answer now."""
         except Exception as e:
             logger.error(f"Error generating reflection: {str(e)}")
             return "I'm unable to surface any related notes at the moment, but I'll keep improving!"
+    
+    async def generate_fact_review(
+        self,
+        fact: UserFact,
+        related_facts: List[UserFact],
+    ) -> str:
+        """
+        Generate a review of a specific fact, providing context and insights.
+        """
+        if not related_facts:
+            related_facts = "No related facts found."
+        else:
+            related_facts = "\n".join(
+                f"- {f.content} ({f.topic}, {f.timestamp.strftime('%Y-%m-%d')})"
+                for f in related_facts
+            )
+
+        try:
+            system_prompt = f"""You are an AI assistant that provides thoughtful reviews of journal facts/events.
+Your review should:
+- Compare the fact to related facts given in the related facts/events section below
+- Provide concise insights about the fact
+- Be supportive and encouraging
+- Focus on personal growth and reflection
+- Be no more than 2-3 sentences long
+
+Related facts:
+{related_facts}""".strip()
+            user_prompt = f"""Review this fact/event: {fact.content}"""
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+
+            reply = await self.llm_client.chat_completion(messages)
+            return reply.strip()
+        
+        except Exception as e:
+            logger.error(f"Error generating fact review: {str(e)}")
+            return "I'm unable to provide a review for this fact at the moment, but I'll keep improving!"

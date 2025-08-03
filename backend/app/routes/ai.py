@@ -5,7 +5,7 @@ AI processing API routes.
 from quart import Blueprint, request, jsonify
 import logging
 from app.models.database import get_db_session
-from app.models.journal import JournalEntry
+from app.models.journal import EntryStatus, JournalEntry
 from app.models.facts import UserFact
 from app.services.ai_processor import AIProcessor
 from app.services.vector_search import VectorSearchService
@@ -56,7 +56,9 @@ async def process_entry():
         logger.error(f"Error processing entry: {str(e)}")
         return jsonify({"error": "Failed to process entry"}), 500
 
-# TODO: remove from route and include review_entry as a service called when journal entry is set to completed
+# TODO: remove from route and include review_entry as an async background 
+# service called when journal entry is set to completed, because it will
+# take a while to generate the review and it never has to be regenerated
 @bp.route('/review-entry', methods=['POST'])
 async def review_entry():
     """Generate an AI review for a journal entry."""
@@ -66,31 +68,48 @@ async def review_entry():
         if not data or not data.get('entry_id'):
             return jsonify({"error": "Entry ID is required"}), 400
         
-        entry_id = data['entry_id']
+        # Convert entry_id to integer to match database schema
+        try:
+            entry_id = int(data['entry_id'])
+        except (ValueError, TypeError):
+            return jsonify({"error": "Entry ID must be a valid integer"}), 400
         
         async with get_db_session() as session:
             entry = await JournalEntry.get_by_id(session, entry_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
+
+            if entry.status != EntryStatus.COMPLETE:
+                return jsonify({"error": "Entry must be completed to generate a review"}), 400
             
-            # Find related facts for context
-            vector_search = VectorSearchService()
-            related_facts = await vector_search.find_related_facts_for_entry(
-                session, entry.content, entry_id, 10
-            )
-            
-            # Generate review using AI
-            ai_processor = AIProcessor()
-            review = await ai_processor.review_entry(entry.content, related_facts)
-            
+            # Retrieve all facts related to the entry
+            facts = await UserFact.get_by_entry_id(session, entry_id)
+
+            # Get related facts per fact (excluding self)
+            fact_reviews = []
+            for fact in facts:
+                embedding_vector = fact.embedding_vector
+
+                vector_search = VectorSearchService()
+                related_facts = await vector_search.search_similar_facts(
+                    session, embedding_vector, 5
+                )  # (fact, similarity)
+                
+                # Generate review for each fact
+                ai_processor = AIProcessor()
+                review_text = await ai_processor.generate_fact_review(fact, related_facts)
+
+                fact_reviews.append({
+                    "original_snippet": fact.original_snippet,
+                    "review": review_text,
+                })
+
             return jsonify({
                 "entry_id": entry_id,
-                "review": review,
-                "related_facts_count": len(related_facts),
-                "related_facts": [fact.to_dict() for fact in related_facts[:5]]
+                "fact_reviews": fact_reviews
             })
-            
+
     except Exception as e:
         logger.error(f"Error reviewing entry: {str(e)}")
         return jsonify({"error": "Failed to generate review"}), 500
@@ -405,4 +424,3 @@ async def analyze_patterns():
     except Exception as e:
         logger.error(f"Error analyzing patterns: {str(e)}")
         return jsonify({"error": "Failed to analyze patterns"}), 500
-
