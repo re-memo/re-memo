@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { ChatBubble } from "@/components/ui/chat-bubble";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { eachDayOfInterval, endOfToday, subDays, format, isSameDay, startOfWeek } from 'date-fns';
 
 const LoadingBubbles = () => (
   <ChatBubble className="bg-secondary text-foreground animate-fade-in">
@@ -22,6 +23,38 @@ const ChatPage = () => {
   // --- Modal state ---
   const [selectedNote, setSelectedNote] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+
+const generateHeatmapData = (notes) => {
+  const endDate = endOfToday();
+  const startDate = subDays(endDate, 34); // 35 days = 5 weeks
+  const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+  const noteCounts = notes.reduce((acc, note) => {
+    const key = format(new Date(note.date), 'yyyy-MM-dd');
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const heatmap = days.map((date) => ({
+    date,
+    count: noteCounts[format(date, 'yyyy-MM-dd')] || 0,
+  }));
+
+  while (heatmap.length < 35) {
+    const padDate = subDays(heatmap[0].date, 1);
+    heatmap.unshift({ date: padDate, count: 0 });
+  }
+
+  return heatmap;
+};
+
+  const getColorClass = (count) => {
+    if (count === 0) return 'bg-muted';
+    if (count < 2) return 'bg-green-100';
+    if (count < 4) return 'bg-green-300';
+    if (count < 6) return 'bg-green-500';
+    return 'bg-green-700';
+  };
 
   /**
    * Call the backend route `/api/ai/get-reflection`
@@ -79,28 +112,77 @@ const ChatPage = () => {
 
       {loading && <LoadingBubbles />}
 
-      {/* Horizontal card carousel */}
-      <div className="mb-6 flex space-x-4 overflow-x-auto pb-4">
-        {cards.map((note, idx) => (
-          <div
-            key={note.id || idx}
-            onClick={() => { setSelectedNote(note); setModalOpen(true); }}
-            className="flex w-64 shrink-0 flex-col rounded-lg border border-border bg-card p-4 shadow-sm text-foreground cursor-pointer hover:shadow-md transition"          >
-            <h3 className="text-lg font-semibold text-foreground">
-              {note.title || `Note ${idx + 1}`}
-            </h3>
-            {note.date && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {new Date(note.date).toLocaleDateString(undefined, {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </p>
-            )}
+    {cards.length > 0 && (
+      <div className="mb-6 flex flex-row gap-6 overflow-x-auto">
+        {/* Heatmap block */}
+        <div className="flex-shrink-0">
+          <h3 className="text-sm font-medium text-muted-foreground mb-2 text-center">
+            Note activity (last 5 weeks)
+          </h3>
+
+          <div className="flex justify-center">
+            <div className="grid grid-cols-7 grid-rows-5 gap-1">
+              {(() => {
+                const data = generateHeatmapData(cards);
+                const weeks = Array.from({ length: 5 }, (_, i) =>
+                  data.slice(i * 7, i * 7 + 7)
+                );
+                const transposed = Array.from({ length: 7 }, (_, dayIdx) =>
+                  weeks.map((week) => week[dayIdx])
+                );
+
+                return transposed.flat().map((day, idx) => (
+                  <div
+                    key={idx}
+                    className={`w-3.5 h-3.5 rounded-sm ${getColorClass(day.count)}`}
+                    title={`${format(day.date, 'EEE, MMM d')}: ${day.count} note${day.count !== 1 ? 's' : ''}`}
+                  />
+                ));
+              })()}
+            </div>
           </div>
-        ))}
+
+          <div className="mt-2 flex justify-center items-center text-[10px] text-muted-foreground gap-2">
+            <span>Less</span>
+            <div className="flex space-x-1">
+              <span className="w-3.5 h-3.5 rounded-sm bg-muted"></span>
+              <span className="w-3.5 h-3.5 rounded-sm bg-green-100"></span>
+              <span className="w-3.5 h-3.5 rounded-sm bg-green-300"></span>
+              <span className="w-3.5 h-3.5 rounded-sm bg-green-500"></span>
+              <span className="w-3.5 h-3.5 rounded-sm bg-green-700"></span>
+            </div>
+            <span>More</span>
+          </div>
+        </div>
+
+        {/* Horizontal card carousel */}
+        <div className="flex space-x-4 overflow-x-auto pb-2">
+          {cards.map((note, idx) => (
+            <div
+              key={note.id || idx}
+              onClick={() => {
+                setSelectedNote(note);
+                setModalOpen(true);
+              }}
+              className="flex w-64 shrink-0 flex-col rounded-lg border border-border bg-card p-4 shadow-sm text-foreground cursor-pointer hover:shadow-md transition"
+            >
+              <h3 className="text-lg font-semibold text-foreground">
+                {note.title || `Note ${idx + 1}`}
+              </h3>
+              {note.date && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {new Date(note.date).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
+    )}
 
       {/* Reflection display block */}
       {reflection && (
