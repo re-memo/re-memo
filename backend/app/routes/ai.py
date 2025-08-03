@@ -235,6 +235,7 @@ async def get_reflection():
                 {
                     "id": e.id,
                     "title": e.title,
+                    "content": e.content,
                     "date": e.created_at.strftime("%Y-%m-%d")
                     if getattr(e, "created_at", None)
                     else None,

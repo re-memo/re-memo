@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageSquare } from 'lucide-react';
 import { ChatBubble } from "@/components/ui/chat-bubble";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 const LoadingBubbles = () => (
   <ChatBubble className="bg-secondary text-foreground animate-fade-in">
@@ -18,6 +19,9 @@ const ChatPage = () => {
   const [cards, setCards] = useState([]);          // Notes returned from the API
   const [reflection, setReflection] = useState(''); // Reflection text returned from the API
   const [loading, setLoading] = useState(false);    // Simple loading flag
+  // --- Modal state ---
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   /**
    * Call the backend route `/api/ai/get-reflection`
@@ -80,11 +84,20 @@ const ChatPage = () => {
         {cards.map((note, idx) => (
           <div
             key={note.id || idx}
-            className="flex w-64 shrink-0 flex-col rounded-lg border border-border bg-card p-4 shadow-sm text-foreground"
-          >
+            onClick={() => { setSelectedNote(note); setModalOpen(true); }}
+            className="flex w-64 shrink-0 flex-col rounded-lg border border-border bg-card p-4 shadow-sm text-foreground cursor-pointer hover:shadow-md transition"          >
             <h3 className="text-lg font-semibold text-foreground">
               {note.title || `Note ${idx + 1}`}
             </h3>
+            {note.date && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {new Date(note.date).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -93,9 +106,42 @@ const ChatPage = () => {
       {reflection && (
         <div className="mb-6 rounded-lg border border-border bg-card p-4">
           <h3 className="mb-2 text-lg font-semibold">Reflection</h3>
-          <p className="whitespace-pre-line text-sm text-muted-foreground">{reflection}</p>
+          <ul className="list-disc pl-6 space-y-1 text-sm text-muted-foreground">
+            {reflection
+              .split('.')
+              .map((sentence) => sentence.trim())
+              .filter(Boolean)
+              .map((sentence, idx) => (
+                <li key={idx}>{sentence}.</li>
+              ))}
+          </ul>
         </div>
       )}
+
+      {/* --- Note Modal --- */}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="max-w-2xl">
+          {selectedNote && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold text-foreground">
+                {selectedNote.title}
+              </h2>
+              {selectedNote.date && (
+                <p className="text-sm text-muted-foreground">
+                  {new Date(selectedNote.date).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </p>
+              )}
+              <div className="whitespace-pre-wrap text-sm text-foreground">
+                {selectedNote.content}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
