@@ -89,7 +89,8 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
             onClick={() => navigate("/chat")}
           >
             <MessageSquare size={16} className="mr-2" />
-            re:flect.
+            <span className="text-muted-foreground">re:</span>
+            <span>flect</span>
           </Button>
         </div>
 
