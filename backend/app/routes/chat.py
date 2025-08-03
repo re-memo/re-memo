@@ -8,8 +8,7 @@ from typing import List, Dict
 from app.models.database import get_db_session
 from app.models.chat import ChatSession, ChatMessage
 from app.models.facts import UserFact
-from app.services.ai_processor import AIProcessor
-from app.services.vector_search import VectorSearchService
+from app.services.service_manager import service_manager
 from app.config.settings import settings
 import logging
 
@@ -53,7 +52,7 @@ async def send_message():
             recent_messages = await ChatMessage.get_recent_messages(session_db, session_id, limit=10)
             
             # Get relevant facts for context
-            vector_search = VectorSearchService()
+            vector_search = service_manager.get_vector_search()
             relevant_facts = await vector_search.find_related_facts_for_entry(
                 session_db, 
                 message, 
@@ -61,7 +60,7 @@ async def send_message():
             )
             
             # Generate AI response
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             
             # Convert messages to chat format
             chat_history = []
@@ -215,7 +214,7 @@ async def suggest_questions():
             # Get recent facts for context
             recent_facts = await UserFact.get_recent(session_db, limit=10)
             
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             questions = await ai_processor.suggest_questions_from_context(context, recent_facts)
             
             return jsonify({
@@ -236,7 +235,7 @@ async def get_quick_insights():
             # Get recent facts
             recent_facts = await UserFact.get_recent(session_db, limit=20)
             
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             insights = await ai_processor.generate_quick_insights(recent_facts)
             
             return jsonify({

@@ -7,8 +7,7 @@ import logging
 from app.models.database import get_db_session
 from app.models.journal import EntryStatus, JournalEntry
 from app.models.facts import UserFact
-from app.services.ai_processor import AIProcessor
-from app.services.vector_search import VectorSearchService
+from app.services.service_manager import service_manager
 from app.models.journal import JournalEntry
 from datetime import datetime
  
@@ -35,7 +34,7 @@ async def process_entry():
                 return jsonify({"error": "Entry not found"}), 404
             
             # Process entry with AI
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             facts_data = await ai_processor.extract_facts_from_entry(
                 entry.content, entry.title
             )
@@ -91,13 +90,13 @@ async def review_entry():
             for fact in facts:
                 embedding_vector = fact.embedding_vector
 
-                vector_search = VectorSearchService()
+                vector_search = service_manager.get_vector_search()
                 related_facts = await vector_search.search_similar_facts(
                     session, embedding_vector, 5
                 )  # (fact, similarity)
                 
                 # Generate review for each fact
-                ai_processor = AIProcessor()
+                ai_processor = service_manager.get_ai_processor()
                 review_text = await ai_processor.generate_fact_review(fact, related_facts)
 
                 fact_reviews.append({
@@ -147,7 +146,7 @@ async def suggest_prompt():
             related_facts = await UserFact.get_by_topic(session, topic, 10)
             
             # Generate prompt using AI
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             prompt = await ai_processor.generate_topic_prompt(topic, related_facts)
             
             return jsonify({
@@ -164,20 +163,11 @@ async def suggest_prompt():
 async def ai_health_check():
     """Check AI services health."""
     try:
-        ai_processor = AIProcessor()
-        
-        # Check LLM client
-        llm_health = await ai_processor.llm_client.health_check()
-        
-        # Check embedding service
-        embedding_stats = await ai_processor.embedding_service.get_embedding_stats()
+        health_status = await service_manager.health_check()
         
         return jsonify({
-            "llm_service": llm_health,
-            "embedding_service": {
-                "status": "healthy" if embedding_stats.get("model_loaded") else "degraded",
-                "stats": embedding_stats
-            }
+            "status": "healthy",
+            "services": health_status
         })
         
     except Exception as e:
@@ -215,7 +205,7 @@ async def get_reflection():
 
         async with get_db_session() as session:
             # ── Step 1: find semantically similar facts ────────────────────
-            vector_search = VectorSearchService()
+            vector_search = service_manager.get_vector_search()
             raw_similar = await vector_search.search_similar_facts(
                 session, query, limit * 4
             )  # (fact, similarity)
@@ -244,7 +234,7 @@ async def get_reflection():
             relevant_entries = list(entries_by_id.values())
 
             # ── Step 3: generate reflection text via AIProcessor ───────────
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             reflection_text = await ai_processor.generate_reflection(
                 query, relevant_entries, relevant_facts
             )
@@ -289,7 +279,7 @@ async def search_similar():
         similarity_threshold = data.get('similarity_threshold', 0.7)
         
         async with get_db_session() as session:
-            vector_search = VectorSearchService()
+            vector_search = service_manager.get_vector_search()
             similar_facts = await vector_search.search_similar_facts(
                 session, query, limit, similarity_threshold
             )
@@ -319,7 +309,7 @@ async def get_topic_clusters():
         n_clusters = int(request.args.get('n_clusters', 5))
         
         async with get_db_session() as session:
-            vector_search = VectorSearchService()
+            vector_search = service_manager.get_vector_search()
             clusters = await vector_search.get_fact_clusters(session, topic, n_clusters)
             
             # Format clusters for response
@@ -359,7 +349,7 @@ async def suggest_topics():
             recent_facts = result.scalars().all()
             
             # Generate topic suggestions
-            ai_processor = AIProcessor()
+            ai_processor = service_manager.get_ai_processor()
             suggested_topics = await ai_processor.suggest_topics(recent_facts, limit)
             
             return jsonify({

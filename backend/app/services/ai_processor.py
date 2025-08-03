@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 class AIProcessor:
     """AI processor for extracting facts and generating insights from journal entries."""
     
-    def __init__(self):
-        self.llm_client = LLMClient()
-        self.embedding_service = EmbeddingService()
+    def __init__(self, llm_client=None, embedding_service=None):
+        # Use injected services or create new ones (for backward compatibility)
+        self.llm_client = llm_client or LLMClient()
+        self.embedding_service = embedding_service or EmbeddingService()
         self.settings = settings
     
     async def extract_facts_from_entry(self, entry_text: str, entry_title: str = "") -> List[Dict[str, Any]]:

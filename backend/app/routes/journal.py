@@ -188,8 +188,8 @@ async def complete_entry(entry_id):
             await entry.mark_complete(session)
             
             # Trigger AI processing
-            from app.services.ai_processor import AIProcessor
-            ai_processor = AIProcessor()
+            from app.services.service_manager import service_manager
+            ai_processor = service_manager.get_ai_processor()
             
             # Extract facts from the entry
             facts_data = await ai_processor.extract_facts_from_entry(

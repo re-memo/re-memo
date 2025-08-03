@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class VectorSearchService:
     """Service for vector-based similarity search using pgvector."""
     
-    def __init__(self):
-        self.embedding_service = EmbeddingService()
+    def __init__(self, embedding_service=None):
+        # Use injected service or create new one (for backward compatibility)
+        self.embedding_service = embedding_service or EmbeddingService()
     
     async def search_similar_facts(
         self,

@@ -5,9 +5,13 @@ Main Quart application entry point for re:memo backend.
 from quart import Quart, jsonify
 from quart_cors import cors
 import os
+import logging
 from app.config.settings import settings
 from app.models.database import init_db
 from app.routes import journal, ai, chat
+from app.services.service_manager import service_manager
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> Quart:
@@ -22,6 +26,17 @@ def create_app() -> Quart:
     
     # Initialize database
     init_db(app)
+    
+    @app.before_serving
+    async def startup():
+        """Initialize services before serving requests."""
+        logger.info("Starting up application...")
+        try:
+            await service_manager.initialize()
+            logger.info("Application startup completed successfully")
+        except Exception as e:
+            logger.error(f"Failed to start application: {str(e)}")
+            raise
     
     # Register blueprints
     app.register_blueprint(journal.bp, url_prefix='/api/journal')
