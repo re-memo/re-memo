@@ -127,15 +127,6 @@ const MainLayout = () => {
             <Outlet />
           </div>
 
-          {/* Right Sidebar if route isn't a journal entry */}
-          {!window.location.pathname.startsWith("/journal/") && (
-            <RightSidebar
-              isOpen={rightSidebarOpen}
-              onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
-              isMobile={isMobile}
-            />
-          )}
-
           {/* Review Sidebar for journal entries, bit hacky 30 mins left */}
           {window.location.pathname.startsWith("/journal/") && (
             <ReviewSidebar
@@ -145,6 +136,13 @@ const MainLayout = () => {
               entryID={entryID}
             />
           )}
+
+          {/* Right Sidebar */}
+          <RightSidebar
+            isOpen={rightSidebarOpen}
+            onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}
+            isMobile={isMobile}
+          />
         </div>
       </div>
     </div>

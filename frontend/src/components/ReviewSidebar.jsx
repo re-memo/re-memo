@@ -25,19 +25,20 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
     const fetchReview = async () => {
       try {
         const response = await api.ai.reviewEntry(entryID);
-        if (!response.ok) {
-          throw new Error("Failed to fetch review");
-        }
-        const data = await response.json();
-        setReview(data);
+        setReview(response);
       } catch (error) {
         console.error("Error fetching review:", error);
+        setReview("NO_REVIEW");
       }
     };
     fetchReview();
   }, [entryID]);
 
   if (!isOpen) return null;
+
+  if (review === "NO_REVIEW") {
+    return null;
+  }
 
   return (
     <>
@@ -56,7 +57,11 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
         )}
       >
         {/* Review Section */}
-        <div className="flex-1 flex flex-col px-6 pb-6 overflow-hidden">
+        <h3 className="text-2xl text-foreground p-6 font-medium">
+          <span className="text-muted-foreground">re:</span>
+          <span className="text-foreground">view</span>
+        </h3>
+        <div className="flex-1 flex flex-col px-6 pb-6 overflow-hidden text-sm">
           <div className="flex-1 flex flex-col space-y-4 overflow-y-auto">
             {!review && <LoadingBubbles />}
             {review &&
@@ -67,7 +72,7 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
                     key={index}
                     className="bg-secondary text-foreground"
                   >
-                    {factReview.original_snippet}
+                    You said: "{factReview.original_snippet}"
                   </ChatBubble>
                   <ChatBubble
                     role="assistant"
