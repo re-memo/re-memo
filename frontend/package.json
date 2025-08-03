@@ -10,7 +10,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.0.2",
+    "@mdxeditor/editor": "^3.40.1",
+    "@radix-ui/react-slot": "^1.2.3",
+    "@radix-ui/react-switch": "^1.2.5",
     "@radix-ui/react-toast": "^1.2.14",
     "@tailwindcss/typography": "^0.5.10",
     "@tanstack/react-query": "^5.84.1",

@@ -1,43 +1,68 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from '@/components/ui/toaster';
-import Layout from '@/components/Layout';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import React, { useEffect, useRef } from "react";
+import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import MainLayout from "@/components/MainLayout";
+import JournalPage from "@/pages/JournalPage";
+import ChatPage from "@/pages/ChatPage";
+import AllJournalsPage from "@/pages/AllJournalsPage";
 
-// Create a client
+import api from "@/services/api";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-    mutations: {
-      retry: 1,
+      cacheTime: 10 * 60 * 1000, // 10 minutes
     },
   },
 });
 
+const NewEntry = () => {
+  const navigate = useNavigate();
+  const hasCreated = useRef(false);
+
+  useEffect(() => {
+    if (hasCreated.current) return;
+
+    const createNewEntry = async () => {
+      hasCreated.current = true;
+      try {
+        const response = await api.journal.createEntry({
+          title: "New Journal Entry",
+          content: "Start writing your thoughts here...",
+        });
+        navigate(`/journal/${response.entry.id}`);
+      } catch (error) {
+        console.error("Failed to create new entry:", error);
+        hasCreated.current = false; // Reset on error so user can retry
+      }
+    };
+    createNewEntry();
+  }, [navigate]);
+
+  return null;
+};
+
 function App() {
   return (
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <div className="App">
-            <Routes>
-              <Route path="/" element={<Layout />} />
-              <Route path="/journal" element={<Layout />} />
-              <Route path="/chat" element={<Layout />} />
-              {/* Add more routes as needed */}
-            </Routes>
-          </div>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <div className="min-h-screen bg-background text-foreground border-2 border-black">
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<AllJournalsPage />} />
+              <Route path="journals" element={<AllJournalsPage />} />
+              <Route path="journal/new" element={<NewEntry />} />
+              <Route path="journal/:id" element={<JournalPage />} />
+              <Route path="chat" element={<ChatPage />} />
+              <Route path="chat/:sessionId" element={<ChatPage />} />
+            </Route>
+          </Routes>
           <Toaster />
-        </Router>
-        <ReactQueryDevtools initialIsOpen={false} />
-      </QueryClientProvider>
-    </ErrorBoundary>
+        </div>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

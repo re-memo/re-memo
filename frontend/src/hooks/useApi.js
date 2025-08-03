@@ -5,13 +5,14 @@ import api from '@/services/api';
  * Custom hook for managing journal entries
  */
 export function useEntries() {
-  const [entries, setEntries] = useState([]);
+  const [entries, setEntries] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total_pages: 0,
+    has_prev: false,
     has_next: false
   });
 
@@ -25,6 +26,7 @@ export function useEntries() {
         page: response.page,
         limit: response.limit,
         total_pages: response.total_pages,
+        has_prev: response.has_prev,
         has_next: response.has_next
       });
     } catch (err) {
@@ -56,7 +58,7 @@ export function useEntries() {
       setError(null);
       const response = await api.journal.updateEntry(id, entryData);
       // Update entry in the list
-      setEntries(prev => prev.map(entry => 
+      setEntries(prev => prev.map(entry =>
         entry.id === id ? response.entry : entry
       ));
       return response.entry;
@@ -89,7 +91,7 @@ export function useEntries() {
       setError(null);
       const response = await api.journal.completeEntry(id);
       // Update entry status
-      setEntries(prev => prev.map(entry => 
+      setEntries(prev => prev.map(entry =>
         entry.id === id ? response.entry : entry
       ));
       return response;
@@ -129,7 +131,7 @@ export function useEntry(id) {
 
   const fetchEntry = useCallback(async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -137,6 +139,53 @@ export function useEntry(id) {
       setEntry(response.entry);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const updateEntry = useCallback(async (entryData) => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.journal.updateEntry(id, entryData);
+      setEntry(response.entry);
+      return response.entry;
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const completeEntry = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.journal.completeEntry(id);
+      setEntry(response.entry);
+      return response;
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const deleteEntry = useCallback(async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      setError(null);
+      await api.journal.deleteEntry(id);
+      setEntry(null); // Clear entry after deletion
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -150,7 +199,10 @@ export function useEntry(id) {
     entry,
     loading,
     error,
-    refetch: fetchEntry
+    refetch: fetchEntry,
+    updateEntry,
+    deleteEntry,
+    completeEntry
   };
 }
 
@@ -180,7 +232,7 @@ export function useChat(sessionId = 'default') {
     try {
       setIsTyping(true);
       setError(null);
-      
+
       // Add user message immediately
       const userMessage = {
         role: 'user',
@@ -191,7 +243,7 @@ export function useChat(sessionId = 'default') {
 
       // Send to API
       const response = await api.chat.sendMessage(message, sessionId);
-      
+
       // Add AI response
       const aiMessage = {
         role: 'assistant',
@@ -201,7 +253,7 @@ export function useChat(sessionId = 'default') {
         relevant_facts: response.relevant_facts
       };
       setMessages(prev => [...prev, aiMessage]);
-      
+
       return response;
     } catch (err) {
       setError(err.response?.data?.error || err.message);
@@ -362,17 +414,17 @@ export function useInsights() {
 /**
  * Custom hook for auto-saving functionality
  */
-export function useAutoSave(data, saveFunction, delay = 2000) {
+export function useAutoSave(saveFunction, delay = 2000) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
 
   useEffect(() => {
-    if (!data || !saveFunction) return;
+    if (!saveFunction) return;
 
     const timeoutId = setTimeout(async () => {
       try {
         setIsSaving(true);
-        await saveFunction(data);
+        await saveFunction();
         setLastSaved(new Date());
       } catch (error) {
         console.error('Auto-save failed:', error);
@@ -382,7 +434,7 @@ export function useAutoSave(data, saveFunction, delay = 2000) {
     }, delay);
 
     return () => clearTimeout(timeoutId);
-  }, [data, saveFunction, delay]);
+  }, [saveFunction, delay]);
 
   return {
     isSaving,
