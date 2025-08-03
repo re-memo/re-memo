@@ -56,13 +56,17 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
           isMobile && "fixed right-0 top-0 h-full z-50"
         )}
       >
-        {/* Review Section */}
-        <h3 className="text-2xl text-foreground p-6 font-medium">
-          <span className="text-muted-foreground">re:</span>
-          <span className="text-foreground">view</span>
-        </h3>
-        <div className="flex-1 flex flex-col px-6 pb-6 overflow-hidden text-sm">
-          <div className="flex-1 flex flex-col space-y-4 overflow-y-auto">
+        {/* Review Section Header */}
+        <div className="p-6 flex-shrink-0">
+          <h3 className="text-2xl text-foreground font-medium">
+            <span className="text-muted-foreground">re:</span>
+            <span className="text-foreground">view</span>
+          </h3>
+        </div>
+
+        {/* Scrollable Review Content */}
+        <div className="flex-[1_1_0] flex flex-col px-6 pb-6 overflow-hidden">
+          <div className="flex-1 flex flex-col space-y-4 overflow-y-auto text-sm pr-2">
             {!review && <LoadingBubbles />}
             {review &&
               review.fact_reviews.map((factReview, index) => (
@@ -70,14 +74,24 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
                   <ChatBubble
                     role="user"
                     key={index}
-                    className="bg-secondary text-foreground"
+                    className="bg-secondary text-foreground opacity-0 animate-fade-in"
+                    style={{
+                      animationDelay: `${index * 400 - 200}ms`,
+                      animationDuration: "300ms",
+                      animationFillMode: "forwards",
+                    }}
                   >
-                    You said: "{factReview.original_snippet}"
+                    "{factReview.original_snippet}"
                   </ChatBubble>
                   <ChatBubble
                     role="assistant"
                     key={`review-${index}`}
-                    className="bg-primary text-foreground"
+                    className="bg-primary text-foreground opacity-0 animate-fade-in"
+                    style={{
+                      animationDelay: `${index * 400}ms`,
+                      animationDuration: "300ms",
+                      animationFillMode: "forwards",
+                    }}
                   >
                     {factReview.review}
                   </ChatBubble>
