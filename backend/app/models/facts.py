@@ -92,11 +92,21 @@ class UserFact(Base):
     @classmethod
     async def get_recent_topics(cls, session: AsyncSession, limit: int = 10) -> List[dict]:
         """Get recent topics with fact counts."""
-        # get most recent unique topics order by timestamp
+        # Get most recent timestamp for each topic, then order by that timestamp
+        from sqlalchemy import func
+        
+        subquery = (
+            select(
+                cls.topic,
+                func.max(cls.timestamp).label('latest_timestamp')
+            )
+            .group_by(cls.topic)
+            .subquery()
+        )
+        
         result = await session.execute(
-            select(cls.topic, cls.timestamp)
-            .order_by(cls.topic, cls.timestamp.desc())
-            .distinct(cls.topic)
+            select(subquery.c.topic, subquery.c.latest_timestamp)
+            .order_by(subquery.c.latest_timestamp.desc())
             .limit(limit)
         )
 

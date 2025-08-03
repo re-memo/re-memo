@@ -1,6 +1,6 @@
 import { useAutoSave, useEntry } from "@/hooks/useApi";
-import React, { useRef } from "react";
-import { useParams } from "react-router-dom";
+import React, { useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { MDXEditor } from "@mdxeditor/editor";
 import {
@@ -18,6 +18,7 @@ import "@mdxeditor/editor/style.css";
 import { Calendar, Download, Star, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Spinner } from "@/components/ui/spinner";
 
 const defaultMarkdown = `# Untitled Entry
 Write your thoughts here...  
@@ -28,8 +29,11 @@ You can use **Markdown** syntax to format your text!
 
 const JournalPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  const { entry, updateEntry, completeEntry } = useEntry(id);
+  const { entry, updateEntry, completeEntry, deleteEntry, loading } = useEntry(id);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const editorRef = useRef(null);
 
@@ -48,7 +52,31 @@ const JournalPage = () => {
     });
   };
 
-  const { lastSaved } = useAutoSave(saveChanges);
+  const handleDeleteEntry = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteEntry(id);
+      navigate("/journals");
+    } catch (error) {
+      console.error("Failed to delete entry:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCompleteEntry = async () => {
+    if (entry?.status === "complete") return;
+    setIsCompleting(true);
+    try {
+      await completeEntry();
+    } catch (error) {
+      console.error("Failed to complete entry:", error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const { lastSaved } = useAutoSave(entry?.status === "complete" ? null : saveChanges);
 
   if (!entry) return null;
 
@@ -60,6 +88,7 @@ const JournalPage = () => {
           variant="ghost"
           size="sm"
           className="text-muted-foreground p-0 h-fit"
+          disabled={isDeleting || isCompleting}
         >
           <Star size={24} className="text-foreground" />
         </Button>
@@ -67,6 +96,7 @@ const JournalPage = () => {
           variant="ghost"
           size="sm"
           className="text-muted-foreground p-0 h-fit"
+          disabled={isDeleting || isCompleting}
         >
           <Download size={24} className="text-foreground" />
         </Button>
@@ -75,13 +105,15 @@ const JournalPage = () => {
           variant="ghost"
           size="sm"
           className="text-muted-foreground p-0 h-fit"
+          onClick={handleDeleteEntry}
+          disabled={isDeleting || isCompleting}
         >
           <Trash size={24} className="text-foreground" />
         </Button>
         <Switch
           checked={entry?.status === "complete"}
-          onCheckedChange={entry?.status === "complete" ? null : completeEntry}
-          disabled={entry?.status === "complete"}
+          onCheckedChange={entry?.status === "complete" ? null : handleCompleteEntry}
+          disabled={entry?.status === "complete" || isDeleting || isCompleting}
         />
         <span className="text-muted-foreground">
           {entry?.status === "complete" ? "Complete" : "Draft"}
@@ -89,11 +121,13 @@ const JournalPage = () => {
         {entry?.status !== "complete" && (
           <span className="text-sm text-muted-foreground ml-auto">
             Last saved:{" "}
-            {lastSaved ? lastSaved.toLocaleTimeString("en-US", {
-              hour: "numeric",
-              minute: "numeric",
-              hour12: true
-            }) : "Never"}
+            {lastSaved
+              ? lastSaved.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "numeric",
+                  hour12: true,
+                })
+              : "Never"}
           </span>
         )}
       </div>
@@ -124,6 +158,18 @@ const JournalPage = () => {
           markdownShortcutPlugin(),
         ]}
       />
+
+      {/* Loading Overlay */}
+      {(isDeleting || isCompleting) && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 flex flex-col items-center space-y-4 border border-border">
+            <Spinner size="large" />
+            <p className="text-foreground">
+              {isDeleting ? "Deleting entry..." : "Completing entry..."}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,8 +9,8 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
   const location = useLocation();
 
   const mockJournals = [
-    { id: "2", title: "My Hackathon Win", date: "30/7/2025", isSticky: false },
-    { id: "3", title: "My Ex Texted Me", date: "29/7/2025", isSticky: false },
+    { id: "2", title: "My hackathon win!", date: "30/7/2025", isSticky: false },
+    { id: "3", title: "I miss her.", date: "29/7/2025", isSticky: false },
   ];
 
   if (isMobile && !isOpen) {
