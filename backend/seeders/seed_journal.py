@@ -89,7 +89,7 @@ sample_entries = [
 ]
 
 async def seed_journals():
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         for entry in sample_entries:
             # 1️⃣  Create the entry
             resp_create = await client.post(

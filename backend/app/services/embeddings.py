@@ -25,8 +25,7 @@ class EmbeddingService:
     def _load_model(self):
         """Load the sentence transformer model."""
         try:
-            # TODO: Implement proper model loading
-            # self.model = SentenceTransformer(self.model_name)
+            self.model = SentenceTransformer(self.model_name)
             logger.info(f"Embedding model {self.model_name} loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {str(e)}")
@@ -44,10 +43,11 @@ class EmbeddingService:
         try:
             # Check cache first
             async with get_db_session() as session:
+                
                 cached_embedding = await EmbeddingCache.get_embedding(
                     session, text, self.model_name
                 )
-
+            
                 '''
                 If EmbeddingCache returns a NumPy array (pgvector can be mapped to an ndarray), the if cached_embedding test triggers the exception.
                 By checking against not None instead of agaisnt None the ambiguity disappears, and every embedding your service returns is a plain List[float], so downstream checks such as if fact.embedding_vector: stay safe and predictable.
@@ -60,22 +60,10 @@ class EmbeddingService:
                         if isinstance(cached_embedding, np.ndarray)
                         else list(cached_embedding)
                     )
-            
+
             # Generate new embedding
-            if self.model is None:
-                # Mock embedding for development
-                # Generate a consistent pseudo-random embedding based on text hash
-                import hashlib
-                hash_obj = hashlib.md5(text.encode())
-                seed = int(hash_obj.hexdigest()[:8], 16)
-                np.random.seed(seed)
-                embedding = np.random.rand(384).tolist()  # 384 dimensions like all-MiniLM-L6-v2
-                logger.debug("Generated mock embedding")
-            else:
-                # TODO: Use actual model
-                # embedding = self.model.encode(text).tolist()
-                embedding = [0.0] * 384  # Placeholder
-            
+            embedding = self.model.encode(text).tolist()
+
             # Cache the embedding
             async with get_db_session() as session:
                 await EmbeddingCache.store_embedding(
@@ -137,6 +125,10 @@ class EmbeddingService:
             similar_facts = await UserFact.search_similar(
                 session, query_embedding, limit
             )
+
+            print("find_similar_facts- Found similar facts:", similar_facts)
+            for similar_fact, distance in similar_facts:
+                print(f"Fact ID: {similar_fact.id}, Score: {distance}")
             
             return similar_facts
             

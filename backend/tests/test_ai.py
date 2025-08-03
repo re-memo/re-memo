@@ -68,7 +68,7 @@ async def test_get_reflection():
     async with httpx.AsyncClient(timeout=30.0) as client:
 
         # 1️⃣  Form a genuine free-text query (not just a topic keyword)
-        query = "What have I mentioned about soccer/football?"
+        query = "What have i mentioned about public speaking?"
         print("Using free-text query:", query)
 
         # 2️⃣  Call /get-reflection
