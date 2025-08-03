@@ -32,9 +32,9 @@ const AllJournalsPage = () => {
       </div>
 
       {/* Journal List */}
-      <div className="flex-[1_1_0] space-y-4 overflow-y-scroll px-2">
-        {entries &&
-          entries.map((journal) => (
+      {entries && entries.length > 0 && (
+        <div className="flex-[1_1_0] space-y-4 overflow-y-scroll px-2">
+          {entries.map((journal) => (
             <div
               key={journal.id}
               className="p-6 bg-card rounded-lg border hover:shadow-md transition-shadow cursor-pointer"
@@ -67,7 +67,8 @@ const AllJournalsPage = () => {
               </p>
             </div>
           ))}
-      </div>
+        </div>
+      )}
 
       {/* Empty State (if no journals) */}
       {entries && entries.length === 0 && (
@@ -81,13 +82,6 @@ const AllJournalsPage = () => {
           <p className="text-muted-foreground mb-6">
             Start documenting your thoughts and experiences.
           </p>
-          <Button
-            onClick={() => navigate("/journal/new")}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus size={16} className="mr-2" />
-            Create your first entry
-          </Button>
         </div>
       )}
     </div>

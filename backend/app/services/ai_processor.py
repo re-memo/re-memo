@@ -142,6 +142,8 @@ The prompt should:
 - Be specific enough to inspire writing but open enough for creativity
 - Encourage introspection and personal growth
 - Be concise, no more than 1-3 sentences long
+- The user needs to be reminded about the context of their previous entries
+- Follow the style of "Recent you wrote about..." -> "You could...", but it doesn't have to be exactly those words
 
 Fact context:
 {fact_context}"""

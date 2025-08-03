@@ -92,32 +92,18 @@ class UserFact(Base):
     @classmethod
     async def get_recent_topics(cls, session: AsyncSession, limit: int = 10) -> List[dict]:
         """Get recent topics with fact counts."""
-        # Note: This is a simplified version. In production, you'd use GROUP BY
+        # get most recent unique topics order by timestamp
         result = await session.execute(
             select(cls.topic, cls.timestamp)
-            .order_by(cls.timestamp.desc())
-            .limit(limit * 3)  # Get more to filter unique topics
+            .order_by(cls.topic, cls.timestamp.desc())
+            .distinct(cls.topic)
+            .limit(limit)
         )
-        
-        topics_seen = set()
-        topics = []
-        
-        for topic, timestamp in result:
-            if topic not in topics_seen and len(topics) < limit:
-                topics_seen.add(topic)
-                # Count facts for this topic
-                count_result = await session.execute(
-                    select(cls).where(cls.topic == topic)
-                )
-                fact_count = len(count_result.scalars().all())
-                
-                topics.append({
-                    "topic": topic,
-                    "latest_timestamp": timestamp.isoformat(),
-                    "fact_count": fact_count
-                })
-        
-        return topics
+
+        return [
+            {"topic": topic, "timestamp": timestamp.isoformat() if timestamp else None}
+            for topic, timestamp in result.all()
+        ]
     
     @classmethod
     async def search_similar(

@@ -100,15 +100,12 @@ async def review_entry():
 async def get_topics():
     """Get recent topics for suggestions."""
     try:
-        limit = int(request.args.get('limit', 10))
+        limit = int(request.args.get('limit', 6))
         
         async with get_db_session() as session:
             topics = await UserFact.get_recent_topics(session, limit)
             
-            return jsonify({
-                "topics": topics,
-                "total": len(topics)
-            })
+            return jsonify(topics)
             
     except Exception as e:
         logger.error(f"Error getting topics: {str(e)}")

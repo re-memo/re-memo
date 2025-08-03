@@ -130,7 +130,7 @@ const api = {
     /**
      * Get recent topics for suggestions
      */
-    getTopics: async (limit = 10) => {
+    getTopics: async (limit = 6) => {
       const response = await apiClient.get('/ai/topics', {
         params: { limit }
       });

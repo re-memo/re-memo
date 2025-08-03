@@ -296,7 +296,7 @@ export function useTopics() {
       setLoading(true);
       setError(null);
       const response = await api.ai.getTopics();
-      setTopics(response.topics);
+      setTopics(response);
     } catch (err) {
       setError(err.response?.data?.error || err.message);
     } finally {
