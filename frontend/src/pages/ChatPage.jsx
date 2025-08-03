@@ -63,8 +63,12 @@ const generateHeatmapData = (notes) => {
   const fetchReflection = async () => {
     if (!prompt.trim()) return;
 
+    // Clear previous results before fetching new ones
+    setReflection('');
+    setCards([]);
+    setLoading(true);
+
     try {
-      setLoading(true);
       const resp = await fetch(
         `${import.meta.env.VITE_API_BASE_URL || ''}/api/ai/get-reflection`,
         {
