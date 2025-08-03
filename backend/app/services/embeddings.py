@@ -125,10 +125,6 @@ class EmbeddingService:
             similar_facts = await UserFact.search_similar(
                 session, query_embedding, limit
             )
-
-            print("find_similar_facts- Found similar facts:", similar_facts)
-            for similar_fact, distance in similar_facts:
-                print(f"Fact ID: {similar_fact.id}, Score: {distance}")
             
             return similar_facts
             

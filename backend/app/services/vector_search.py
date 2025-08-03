@@ -24,7 +24,7 @@ class VectorSearchService:
         session: AsyncSession,
         query_text: str,
         limit: int = 10,
-        similarity_threshold: float = 0.3
+        similarity_threshold: float = 0.8
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts similar to the query text using vector similarity.
