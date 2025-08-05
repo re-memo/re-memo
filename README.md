@@ -68,6 +68,13 @@ cp .env.example .env
 
 ### 2. Choose Your Setup
 
+> [!CAUTION]
+> re:memo does not include an authentication mechanism out-of-the-box. You will have to do this yourself,
+> especially if you plan to make it internet accessible!
+>
+> A simple setup could include an NGINX reverse proxy
+> with client certificate authentication.
+
 > [!TIP]
 > So far, we have tested the default prompt flows with Mistral 3.2 Instruct and GPT 4o-mini.
 > However, we would like to build a reference of LLM models and model-specific prompts that work well with re:memo!
