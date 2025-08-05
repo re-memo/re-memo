@@ -26,12 +26,12 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 - [x] **Chat with Your Journal** - Ask questions about your past entries and get AI responses
 - [x] **Privacy-First Design** - Optional local LLM support with Ollama
 - [x] **Docker Deployment** - One-command setup with docker-compose
+- [x] **Entry Review System** - AI-generated insights and connections to past entries
 
 ### 🔄 In Development
 - [ ] **Voice Journaling** - Speak your thoughts, get structured journal entries
-- [ ] **Entry Review System** - AI-generated insights and connections to past entries
 - [ ] **Advanced Fact Management** - Smart handling of changing preferences and contradictions
-- [ ] **Rich Text Search** - Full-text search across all journal entries
+- [ ] **Rich Text Search** - Full-text fuzzy search across all journal entries
 
 ### 🎯 Future Enhancements
 - [ ] **Insights Dashboard** - Visualize emotions, themes, and growth over time
@@ -45,26 +45,12 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 
 ### Tech Stack
 - **Frontend**: React 18 + Vite + Tailwind CSS
-- **Backend**: Python Quart (async Flask) + Langchain
+- **Backend**: Python Quart (async Flask)
 - **Database**: PostgreSQL with pgvector for embeddings
 - **AI/ML**: 
   - LLMs: Ollama (local) or OpenAI-compatible APIs
   - Embeddings: HuggingFace sentence-transformers
 - **Deployment**: Docker + Docker Compose
-
-### Privacy Options
-```yaml
-# Full Privacy Mode (everything local)
-LLM_PROVIDER=ollama
-docker-compose --profile llm-selfhost --profile db-selfhost up
-
-# Hybrid Mode (local DB, external LLM)
-LLM_PROVIDER=openai
-docker-compose --profile db-selfhost up
-
-# Cloud Mode (external services)
-docker-compose up rememo
-```
 
 ## 🚀 Quick Start
 
@@ -82,20 +68,26 @@ cp .env.example .env
 
 ### 2. Choose Your Setup
 
+> [!TIP]
+> So far, we have tested the default prompt flows with Mistral 3.2 Instruct and GPT 4o-mini.
+> However, we would like to build a reference of LLM models and model-specific prompts that work well with re:memo!
+
 **Option A: Full Privacy (Local AI)**
 ```bash
 # Requires GPU for optimal performance
 docker-compose --profile llm-selfhost --profile db-selfhost up -d
 ```
 
-**Option B: Hybrid (Local DB + External AI)**
+**Option B: Hybrid (Local DB + External OpenAI API / Ollama API compatible provider)**
+> [!NOTE]
+> This option can still be private! You might have your LLM service privately hosted elsewhere :)
 ```bash
-# Add your OpenAI API key to .env
-echo "OPENAI_API_KEY=your_key_here" >> .env
 docker-compose --profile db-selfhost up -d
 ```
 
-**Option C: Quick Demo (External Services)**
+**Option C: Backend Only**
+> [!NOTE]
+> Like before, this is still private if you already have a private Postgres + LLM provider elsewhere :)
 ```bash
 # Fastest setup for testing
 docker-compose up -d rememo
@@ -129,15 +121,11 @@ Key environment variables:
 # LLM Configuration
 LLM_PROVIDER=ollama          # ollama or openai
 OPENAI_API_KEY=sk-...        # For OpenAI/compatible APIs
+OPENAI_BASE_URL=https://...  # ^
 DEFAULT_MODEL=llama3.1       # Model name
-
-# Privacy Settings
-ENABLE_ANALYTICS=false       # Disable usage tracking
-DATA_RETENTION_DAYS=0        # Keep data forever (0) or auto-delete
 
 # AI Behavior
 SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
-MAX_FACTS_PER_ENTRY=20              # Limit processing per entry
 ```
 
 ## 🤝 Contributing
@@ -156,9 +144,11 @@ MIT License - Feel free to use this for personal or commercial projects.
 
 ## 🙏 Acknowledgments
 
-- Built during [Hackathon Name] 2025
+- Built during AI Engine: Hackathon 2025
 - Inspired by tools like Obsidian, Day One, and Roam Research
 - Thanks to the open-source AI community for making local LLMs accessible
+- Thanks to my lil bro @asian-mario for the sick logo
+- Thanks to my bestie @curz46 for the sick name
 
 ---
 
