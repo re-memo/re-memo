@@ -3,15 +3,34 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Star, Archive, MessageSquare, Menu, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useKeyboard, useScreenReader, ARIA } from "@/utils/accessibility";
+import { ROUTES } from "@/constants";
 
 const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const announce = useScreenReader();
 
   const mockJournals = [
-    { id: "2", title: "My hackathon win!", date: "30/7/2025", isSticky: false },
-    { id: "3", title: "I miss her.", date: "29/7/2025", isSticky: false },
+    // { id: "2", title: "My hackathon win!", date: "30/7/2025", isSticky: false },
+    // { id: "3", title: "I miss her.", date: "29/7/2025", isSticky: false },
   ];
+
+  const handleNavigation = (path, description) => {
+    navigate(path);
+    announce(`Navigated to ${description}`, 'polite');
+    if (isMobile && onToggle) {
+      onToggle();
+    }
+  };
+
+  // Keyboard navigation for sidebar
+  useKeyboard(['Escape'], () => {
+    if (isMobile && isOpen && onToggle) {
+      onToggle();
+      announce('Sidebar closed', 'polite');
+    }
+  });
 
   if (isMobile && !isOpen) {
     return null;
@@ -61,11 +80,14 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
           <Button
             variant="ghost"
             className={cn("w-full justify-start text-left rounded-none")}
-            onClick={() => navigate("/journal/new")}
+            onClick={() => handleNavigation(ROUTES.JOURNAL_NEW, "new entry")}
+            {...ARIA.button(false, false, "new-entry-help")}
           >
             <Plus size={16} className="mr-2" />
             new entry.
           </Button>
+          <p id="new-entry-help" className="sr-only">Create a new journal entry</p>
+          
           <Button
             variant="ghost"
             className={cn(
@@ -74,11 +96,18 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
                 location.pathname === "/journals") &&
                 "bg-accent text-accent-foreground border-l-4 border-blue-500"
             )}
-            onClick={() => navigate("/journals")}
+            onClick={() => handleNavigation(ROUTES.JOURNALS, "all journals")}
+            {...ARIA.button(
+              location.pathname === "/" || location.pathname === "/journals",
+              false,
+              "all-journals-help"
+            )}
           >
             <Archive size={16} className="mr-2" />
             all journals.
           </Button>
+          <p id="all-journals-help" className="sr-only">View all journal entries</p>
+          
           <Button
             variant="ghost"
             className={cn(
@@ -86,12 +115,18 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
               location.pathname.startsWith("/chat") &&
                 "bg-accent text-accent-foreground border-l-4 border-blue-500"
             )}
-            onClick={() => navigate("/chat")}
+            onClick={() => handleNavigation(ROUTES.CHAT, "reflection chat")}
+            {...ARIA.button(
+              location.pathname.startsWith("/chat"),
+              false,
+              "chat-help"
+            )}
           >
             <MessageSquare size={16} className="mr-2" />
             <span className="text-muted-foreground">re:</span>
             <span>flect</span>
           </Button>
+          <p id="chat-help" className="sr-only">Open AI reflection chat</p>
         </div>
 
         {/* Favourite Notes Section */}

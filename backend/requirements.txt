@@ -6,6 +6,7 @@ quart-cors
 sqlalchemy
 asyncpg
 pgvector
+alembic
 
 # Configuration & Settings
 pydantic

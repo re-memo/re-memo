@@ -1,47 +1,64 @@
 #!/usr/bin/env python3
 """
 Database migration and startup script for re:memo backend.
+Now uses Alembic for proper database versioning.
 """
 
 import asyncio
 import logging
+import subprocess
+import sys
+from pathlib import Path
 from app.config.settings import settings
-from app.models.database import Base, init_db
-from app.models import journal, chat, facts, embeddings
-from sqlalchemy.ext.asyncio import create_async_engine
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def create_tables():
-    """Create all database tables."""
+def run_alembic_command(cmd):
+    """Run an Alembic command and handle errors."""
     try:
-        # Create async engine
-        engine = create_async_engine(settings.database_url)
+        logger.info(f"Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
         
-        # Create all tables
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+        if result.returncode != 0:
+            logger.error(f"❌ Alembic command failed: {result.stderr}")
+            raise Exception(f"Alembic command failed: {result.stderr}")
         
-        logger.info("✅ Database tables created successfully")
+        logger.info(result.stdout)
+        return result.stdout
+    except Exception as e:
+        logger.error(f"❌ Error running Alembic command: {e}")
+        raise
+
+
+async def run_migrations():
+    """Run database migrations using Alembic."""
+    try:
+        logger.info("🔄 Running database migrations with Alembic...")
         
-        # Close the engine
-        await engine.dispose()
+        # Check current revision
+        run_alembic_command(["alembic", "current"])
+        
+        # Run migrations
+        run_alembic_command(["alembic", "upgrade", "head"])
+        
+        logger.info("✅ Database migrations completed successfully")
         
     except Exception as e:
-        logger.error(f"❌ Error creating database tables: {e}")
+        logger.error(f"❌ Error running migrations: {e}")
         raise
 
 
 async def main():
     """Main migration function."""
-    logger.info("🚀 Starting database migration...")
+    logger.info("🚀 Starting database migration with Alembic...")
     logger.info(f"📊 Database URL: {settings.database_url}")
     
-    await create_tables()
+    await run_migrations()
     
     logger.info("✅ Database migration completed successfully!")
+    logger.info("💡 Use 'python alembic_manager.py' for future schema changes")
 
 
 if __name__ == "__main__":

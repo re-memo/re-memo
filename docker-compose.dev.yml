@@ -55,6 +55,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend/app:/app/app
+      - ./backend/models:/app/models
       - ./backend/migrate.py:/app/migrate.py
       - ./logs:/app/logs
     networks:

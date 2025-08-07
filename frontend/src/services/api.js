@@ -1,13 +1,25 @@
 import axios from 'axios';
+import { config } from '@/config/env';
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: '/api',
-  timeout: 30000,
+  baseURL: config.api.baseUrl,
+  timeout: config.api.timeout,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Enhanced error handling class
+class ApiError extends Error {
+  constructor(message, status, code, details) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
 
 // Request interceptor for logging
 apiClient.interceptors.request.use(
@@ -27,18 +39,23 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Response Error:', error.response?.data || error.message);
+    const message = error.response?.data?.error || error.message || 'An error occurred';
+    const status = error.response?.status;
+    const code = error.response?.data?.code || error.code;
+    const details = error.response?.data?.details;
+
+    console.error('API Response Error:', { message, status, code, details });
     
     // Handle common errors
-    if (error.response?.status === 401) {
-      // Handle unauthorized
+    if (status === 401) {
       console.warn('Unauthorized access');
-    } else if (error.response?.status >= 500) {
-      // Handle server errors
+    } else if (status >= 500) {
       console.error('Server error occurred');
     }
     
-    return Promise.reject(error);
+    // Create enhanced error object
+    const apiError = new ApiError(message, status, code, details);
+    return Promise.reject(apiError);
   }
 );
 
