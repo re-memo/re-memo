@@ -33,7 +33,7 @@ class AIProcessor:
         """
         try:
             # Prepare the extraction prompt
-            system_prompt = """You are an AI assistant that extracts meaningful facts, events, and insights from journal entries.
+            system_prompt = f"""You are an AI assistant that extracts meaningful facts, events, and insights from journal entries.
 
 Extract information from the journal entry and return it as a JSON array. Each item should have:
 - content: The extracted fact/event/insight
@@ -48,7 +48,7 @@ Guidelines:
 - Capture emotional states and their contexts
 - Use clear, concise language for content
 - Keep topics general but descriptive
-- Maximum 20 extractions per entry
+- Maximum {self.settings.MAX_FACTS_PER_ENTRY} extractions per entry
 
 Return only valid JSON array format."""
 

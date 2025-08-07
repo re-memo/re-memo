@@ -1,6 +1,12 @@
 import { useAutoSave, useEntry } from "@/hooks/useApi";
-import React, { useRef, useState } from "react";
+import { useAsyncOperation } from "@/hooks/useCommon";
+import { useScreenReader } from "@/utils/accessibility";
+import { validateJournalEntry } from "@/utils/security";
+import { DEFAULT_VALUES } from "@/constants";
+import { formatDate, formatTime } from "@/utils/helpers";
+import React, { useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
 import { MDXEditor } from "@mdxeditor/editor";
 import {
@@ -19,6 +25,7 @@ import { Calendar, Download, Star, Trash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Spinner } from "@/components/ui/spinner";
+import { ErrorMessage } from "@/components/ErrorBoundary";
 
 const defaultMarkdown = `# Untitled Entry
 Write your thoughts here...  
@@ -31,52 +38,85 @@ const JournalPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { entry, updateEntry, completeEntry, deleteEntry, loading } = useEntry(id);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isCompleting, setIsCompleting] = useState(false);
-
+  const { entry, updateEntry, completeEntry, deleteEntry, loading, error } = useEntry(id);
+  const { isLoading: isDeleting, execute: executeDelete } = useAsyncOperation();
+  const { isLoading: isCompleting, execute: executeComplete } = useAsyncOperation();
+  
   const editorRef = useRef(null);
+  const announce = useScreenReader();
 
-  const saveChanges = async () => {
-    if (!entry || !editorRef.current) return;
-    if (entry?.status === "complete") return;
-    const markdown = editorRef.current.getMarkdown();
-
-    // parse title from first line
+  const parseTitle = useCallback((markdown) => {
     const titleMatch = markdown.match(/^#\s*(.*)/);
-    const title = titleMatch ? titleMatch[1] : "Untitled Entry";
+    return titleMatch ? titleMatch[1] : "Untitled Entry";
+  }, []);
 
-    await updateEntry({
-      title,
-      content: markdown,
-    });
-  };
+  const saveChanges = useCallback(async () => {
+    if (!entry || !editorRef.current || entry?.status === "complete") return;
+    
+    try {
+      const markdown = editorRef.current.getMarkdown();
+      const title = parseTitle(markdown);
+
+      // Validate entry data
+      const validation = validateJournalEntry({ title, content: markdown });
+      if (!validation.isValid) {
+        validation.errors.forEach(error => toast.error(error));
+        return;
+      }
+
+      await updateEntry({
+        title,
+        content: markdown,
+      });
+      
+      announce('Entry saved successfully', 'polite');
+    } catch (error) {
+      toast.error("Failed to save changes");
+      announce('Failed to save entry', 'assertive');
+      console.error("Save error:", error);
+    }
+  }, [entry, updateEntry, parseTitle, announce]);
 
   const handleDeleteEntry = async () => {
-    setIsDeleting(true);
     try {
-      await deleteEntry(id);
-      navigate("/journals");
+      await executeDelete(async () => {
+        await deleteEntry(id);
+        toast.success("Entry deleted successfully");
+        announce('Entry deleted', 'polite');
+        navigate("/journals");
+      });
     } catch (error) {
-      console.error("Failed to delete entry:", error);
-    } finally {
-      setIsDeleting(false);
+      toast.error("Failed to delete entry");
+      announce('Failed to delete entry', 'assertive');
+      console.error("Delete error:", error);
     }
   };
 
   const handleCompleteEntry = async () => {
     if (entry?.status === "complete") return;
-    setIsCompleting(true);
+    
     try {
-      await completeEntry();
+      await executeComplete(async () => {
+        await completeEntry();
+        toast.success("Entry completed successfully");
+        announce('Entry marked as complete', 'polite');
+      });
     } catch (error) {
-      console.error("Failed to complete entry:", error);
-    } finally {
-      setIsCompleting(false);
+      toast.error("Failed to complete entry");
+      announce('Failed to complete entry', 'assertive');
+      console.error("Complete error:", error);
     }
   };
 
   const { lastSaved } = useAutoSave(entry?.status === "complete" ? null : saveChanges);
+
+  if (error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center p-6">
+        <ErrorMessage error={error} />
+      </div>
+    );
+  }
 
   if (!entry) return null;
 
@@ -114,36 +154,31 @@ const JournalPage = () => {
           checked={entry?.status === "complete"}
           onCheckedChange={entry?.status === "complete" ? null : handleCompleteEntry}
           disabled={entry?.status === "complete" || isDeleting || isCompleting}
+          aria-label={`Mark entry as ${entry?.status === "complete" ? "complete" : "draft"}`}
         />
         <span className="text-muted-foreground">
           {entry?.status === "complete" ? "Complete" : "Draft"}
         </span>
-        {entry?.status !== "complete" && (
-          <span className="text-sm text-muted-foreground ml-auto">
-            Last saved:{" "}
-            {lastSaved
-              ? lastSaved.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "numeric",
-                  hour12: true,
-                })
-              : "Never"}
-          </span>
-        )}
       </div>
       <div className="flex items-center px-3 select-none">
         <Calendar size={18} className="text-muted-foreground mr-2" />
         <span className="text-muted-foreground">
-          {new Date(entry?.created_at).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
+          {formatDate(entry?.created_at, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            weekday: 'long'
           })}
         </span>
+        {entry?.status !== "complete" && lastSaved && (
+          <span className="text-xs text-muted-foreground ml-4">
+            Auto-saved at {formatTime(lastSaved)}
+          </span>
+        )}
       </div>
       {/* Content Area */}
       <MDXEditor
-        markdown={entry?.content || defaultMarkdown}
+        markdown={entry?.content || DEFAULT_VALUES.MARKDOWN}
         ref={editorRef}
         className="flex-[1_1_0] overflow-y-auto"
         readOnly={entry?.status === "complete"}

@@ -10,28 +10,26 @@ services:
       - DB_NAME=rememo
       - DB_USER=rememo_user
       - DB_PASSWORD=rememo_password
-      
+
       # LLM Configuration
-      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}  # ollama or openai
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama} # ollama or openai
       - OLLAMA_URL=http://ollama:11434
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      
+
       # AI Model Configuration
       - DEFAULT_MODEL=${DEFAULT_MODEL:-llama3.1}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
       - SYSTEM_PROMPT=${SYSTEM_PROMPT:-You are a helpful AI assistant for journaling and self-reflection.}
-      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-1536}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-384}
 
       # App Configuration
       - APP_HOST=0.0.0.0
       - APP_PORT=80
       - DEBUG=${DEBUG:-false}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this}
-      
-      # Feature Flags
-      - ENABLE_VOICE=${ENABLE_VOICE:-true}
-      - MAX_ENTRY_LENGTH=${MAX_ENTRY_LENGTH:-10000}
+
+      # Journal Configuration
       - MAX_FACTS_PER_ENTRY=${MAX_FACTS_PER_ENTRY:-20}
     depends_on:
       postgres:
@@ -96,10 +94,10 @@ services:
     restart: unless-stopped
     # Optional: Pull specific models on startup
     # command: >
-    #   sh -c "ollama serve & 
-    #          sleep 10 && 
-    #          ollama pull llama3.1 && 
-    #          ollama pull nomic-embed-text && 
+    #   sh -c "ollama serve &
+    #          sleep 10 &&
+    #          ollama pull llama3.1 &&
+    #          ollama pull nomic-embed-text &&
     #          wait"
 
 volumes:
@@ -111,9 +109,8 @@ volumes:
 networks:
   rememo-network:
     driver: bridge
-
 # Usage Examples:
-# 
+#
 # Full self-hosted (with local LLM):
 # docker-compose --profile llm-selfhost --profile db-selfhost up -d
 #
