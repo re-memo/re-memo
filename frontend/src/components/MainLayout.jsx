@@ -1,61 +1,75 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, useParams } from "react-router-dom";
+import { Outlet, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Menu, Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLocalStorage, useResponsive, useDebounce } from "@/hooks/useCommon";
+import { useThrottle } from "@/hooks/usePerformance";
+import { STORAGE_KEYS } from "@/constants";
+import { validateSearchQuery } from "@/utils/security";
 import LeftSidebar from "./LeftSidebar";
 import RightSidebar from "./RightSidebar";
 import ReviewSidebar from "./ReviewSidebar";
 
 const MainLayout = () => {
   const { id: entryID } = useParams();
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    if (saved !== null) {
-      return JSON.parse(saved);
-    }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches;
-  });
+  const location = useLocation();
+  const { isMobile } = useResponsive();
+  
+  const [darkMode, setDarkMode] = useLocalStorage(
+    STORAGE_KEYS.DARK_MODE,
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  );
 
-  const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
-  const [rightSidebarOpen, setRightSidebarOpen] = useState(true);
+  const [leftSidebarOpen, setLeftSidebarOpen] = useState(!isMobile);
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(!isMobile);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isMobile, setIsMobile] = useState(false);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Check for mobile screen size
+  // Throttled search handler to prevent excessive API calls
+  const throttledSearch = useThrottle((query) => {
+    const { isValid, sanitized } = validateSearchQuery(query);
+    if (isValid && sanitized.length > 2) {
+      // Trigger search API call here if needed
+      console.log('Searching for:', sanitized);
+    }
+  }, 1000);
+
+  // Handle search query changes
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) {
-        setLeftSidebarOpen(false);
-        setRightSidebarOpen(false);
-      } else {
-        setLeftSidebarOpen(true);
-      }
-    };
+    if (debouncedSearchQuery) {
+      throttledSearch(debouncedSearchQuery);
+    }
+  }, [debouncedSearchQuery, throttledSearch]);
 
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  // Handle responsive sidebar behavior
+  useEffect(() => {
+    if (isMobile) {
+      setLeftSidebarOpen(false);
+      setRightSidebarOpen(false);
+    } else {
+      setLeftSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   // Apply dark mode
   useEffect(() => {
+    const root = document.documentElement;
     if (darkMode) {
-      document.documentElement.classList.add("dark");
-      document.documentElement.style.colorScheme = "dark";
+      root.classList.add("dark");
+      root.style.colorScheme = "dark";
     } else {
-      document.documentElement.classList.remove("dark");
-      document.documentElement.style.colorScheme = "light";
+      root.classList.remove("dark");
+      root.style.colorScheme = "light";
     }
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
+
+  const isJournalRoute = location.pathname.startsWith("/journal/");
 
   return (
     <div className={cn("flex h-screen", darkMode ? "dark" : "")}>
@@ -127,8 +141,8 @@ const MainLayout = () => {
             <Outlet />
           </div>
 
-          {/* Review Sidebar for journal entries, bit hacky 30 mins left */}
-          {window.location.pathname.startsWith("/journal/") && (
+          {/* Review Sidebar for journal entries */}
+          {isJournalRoute && (
             <ReviewSidebar
               isOpen={rightSidebarOpen}
               onToggle={() => setRightSidebarOpen(!rightSidebarOpen)}

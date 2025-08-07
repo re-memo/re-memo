@@ -1,0 +1,84 @@
+version: "3.8"
+
+services:
+  devcontainer:
+    build:
+      context: .
+      additional_contexts:
+        backend: ../backend
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/workspace:cached
+      - ../backend/embedding_models:/app/embedding_models:cached
+      # Avoid getting griefed by a corporate firewall, mm yes "sekurite kompliance"
+      # Ensure your MITM cert is installed in the host OS,
+      # I'm assuming you're using a Linux distro with ca-certificates installed, change if needed
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    ports:
+      - "3000:3000" # Frontend Vite dev server
+      - "8080:8080" # Backend API
+    environment:
+      # Avoid getting griefed by a corporate firewall, mm yes "sekurite kompliance"
+      - SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+      - REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+
+      # Database Configuration
+      - POSTGRES_DB=rememo
+      - POSTGRES_USER=rememo_user
+      - POSTGRES_PASSWORD=rememo_password
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=rememo
+      - DB_USER=rememo_user
+      - DB_PASSWORD=rememo_password
+
+      # LLM Configuration - External provider
+      - LLM_PROVIDER=${LLM_PROVIDER:-openai}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+
+      # AI Model Configuration
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-gpt-4o-mini}
+      - EMBEDDING_MODEL=${EMBEDDING_MODEL:-sentence-transformers/all-MiniLM-L6-v2}
+      - SYSTEM_PROMPT=${SYSTEM_PROMPT:-You are a helpful AI assistant for journaling and self-reflection.}
+      - EMBEDDING_DIMENSION=${EMBEDDING_DIMENSION:-384}
+
+      # App Configuration
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8080
+      - DEBUG=true
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-this}
+
+      # Journal Configuration
+      - MAX_FACTS_PER_ENTRY=${MAX_FACTS_PER_ENTRY:-20}
+
+      # Frontend Configuration
+      - VITE_API_URL=http://localhost:8080
+
+    working_dir: /app
+    command: sleep infinity
+    networks:
+      - rememo-dev
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rememo_user
+      POSTGRES_PASSWORD: rememo_password
+      POSTGRES_DB: rememo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    networks:
+      - rememo-dev
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  rememo-dev:
+    driver: bridge

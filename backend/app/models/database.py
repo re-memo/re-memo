@@ -54,22 +54,3 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
         finally:
             await session.close()
-
-
-async def create_tables():
-    """Create all tables in the database."""
-    # Import all models to ensure they're registered
-    from app.models import journal, facts, embeddings, chat
-    
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    logger.info("Database tables created successfully")
-
-
-async def drop_tables():
-    """Drop all tables in the database."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    
-    logger.info("Database tables dropped successfully")

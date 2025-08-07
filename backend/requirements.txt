@@ -5,7 +5,9 @@ quart-cors
 # Database
 sqlalchemy
 asyncpg
+psycopg2
 pgvector
+alembic
 
 # Configuration & Settings
 pydantic

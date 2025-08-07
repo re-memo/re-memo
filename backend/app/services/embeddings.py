@@ -25,7 +25,7 @@ class EmbeddingService:
     def _load_model(self):
         """Load the sentence transformer model."""
         try:
-            self.model = SentenceTransformer(self.model_name)
+            self.model = SentenceTransformer("/app/embedding_models/" + self.model_name, local_files_only=True)
             logger.info(f"Embedding model {self.model_name} loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load embedding model: {str(e)}")

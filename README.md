@@ -1,7 +1,6 @@
 # <p align="center" width="100%"><img width="250" height="250" alt="re:memo" align="center" src="https://github.com/user-attachments/assets/142110dc-9567-4e24-9837-e2d4d7d143a5" /><p/>
 
-
-> *AI-assisted journaling that helps you remember, reflect, and grow*
+> _AI-assisted journaling that helps you remember, reflect, and grow_
 
 **re:memo** is a privacy-focused AI journaling application that transforms your thoughts into structured insights while keeping your data under your control. Built during a 30-hour hackathon, it combines the intimacy of personal journaling with the power of AI to help you understand patterns in your life, remember important details, and gain deeper self-awareness.
 
@@ -10,6 +9,7 @@
 In our fast-paced world, we often lose track of our thoughts, experiences, and personal growth. Traditional journaling is powerful but can feel overwhelming - where do you start? What should you write about? How do you find patterns in months of entries?
 
 **re:memo** solves these problems by:
+
 - **Removing the blank page problem** with AI-powered writing prompts based on your history
 - **Extracting meaningful insights** from your stream-of-consciousness writing
 - **Creating a searchable memory palace** of your experiences and growth
@@ -19,6 +19,7 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 ## 🚀 Key Features
 
 ### ✅ Core Features (MVP)
+
 - [x] **Markdown Journal Editor** - Write with live preview, just like Obsidian
 - [x] **AI-Powered Processing** - Automatically extract events, facts, and insights from entries
 - [x] **Smart Topic Suggestions** - Get personalized writing prompts based on your history
@@ -29,11 +30,13 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 - [x] **Entry Review System** - AI-generated insights and connections to past entries
 
 ### 🔄 In Development
+
 - [ ] **Voice Journaling** - Speak your thoughts, get structured journal entries
 - [ ] **Advanced Fact Management** - Smart handling of changing preferences and contradictions
 - [ ] **Rich Text Search** - Full-text fuzzy search across all journal entries
 
 ### 🎯 Future Enhancements
+
 - [ ] **Insights Dashboard** - Visualize emotions, themes, and growth over time
 - [ ] **Habit Tracking Integration** - Connect journal insights with behavior patterns
 - [ ] **Export & Backup** - Multiple format exports (PDF, Markdown, JSON)
@@ -44,21 +47,43 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 ## 🏗️ Architecture
 
 ### Tech Stack
+
 - **Frontend**: React 18 + Vite + Tailwind CSS
 - **Backend**: Python Quart (async Flask)
 - **Database**: PostgreSQL with pgvector for embeddings
-- **AI/ML**: 
+- **AI/ML**:
   - LLMs: Ollama (local) or OpenAI-compatible APIs
   - Embeddings: HuggingFace sentence-transformers
 - **Deployment**: Docker + Docker Compose
 
+## 🔧 Configuration
+
+Key environment variables:
+
+```bash
+# LLM Configuration
+LLM_PROVIDER=openai          # ollama (local) or openai compatible (external)
+OPENAI_API_KEY=sk-...        # For external OpenAI external
+OPENAI_BASE_URL=https://...  # ^
+DEFAULT_MODEL=gpt-4o-mini    # Model name
+
+# AI Behavior
+SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
+                                     # More env var customisability coming soon!
+
+# Frontend Configuration
+VITE_API_BASE_URL=https://localhost:8080/api # or wherever your backend will live
+```
+
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Docker & Docker Compose
 - (Optional) NVIDIA GPU for local LLM support
 
 ### 1. Clone and Configure
+
 ```bash
 git clone https://github.com/your-username/re-memo.git
 cd re-memo
@@ -67,6 +92,23 @@ cp .env.example .env
 ```
 
 ### 2. Choose Your Setup
+
+> [!INFO]
+> Prebuilt images coming soon!
+
+#### Frontend
+
+Do a production build of the frontend React application.
+You can use the devcontainer or attach to the frontend service in docker-compose.dev.yml
+Don't forget to configure the backend base URL!
+
+```bash
+npm run build
+```
+
+Copy the output folder to a webserver (nginx, cloudflare).
+
+#### Backend
 
 > [!CAUTION]
 > re:memo does not include an authentication mechanism out-of-the-box. You will have to do this yourself,
@@ -80,28 +122,34 @@ cp .env.example .env
 > However, we would like to build a reference of LLM models and model-specific prompts that work well with re:memo!
 
 **Option A: Full Privacy (Local AI)**
+
 ```bash
 # Requires GPU for optimal performance
 docker-compose --profile llm-selfhost --profile db-selfhost up -d
 ```
 
 **Option B: Hybrid (Local DB + External OpenAI API / Ollama API compatible provider)**
+
 > [!NOTE]
 > This option can still be private! You might have your LLM service privately hosted elsewhere :)
+
 ```bash
 docker-compose --profile db-selfhost up -d
 ```
 
 **Option C: Backend Only**
+
 > [!NOTE]
 > Like before, this is still private if you already have a private Postgres + LLM provider elsewhere :)
+
 ```bash
 # Fastest setup for testing
-docker-compose up -d rememo
+docker-compose up -d
 ```
 
 ### 3. Start Journaling
-Navigate to `http://localhost:8080` and start writing! 
+
+Navigate to `http://localhost:8080` and start writing!
 
 ## 💡 How It Works
 
@@ -119,21 +167,6 @@ Navigate to `http://localhost:8080` and start writing!
 - **Goal Tracking** - Monitor progress and mindset changes over time
 - **Memory Palace** - Never lose important thoughts or realizations
 - **Personal Research** - Chat with your past self to find insights
-
-## 🔧 Configuration
-
-Key environment variables:
-
-```bash
-# LLM Configuration
-LLM_PROVIDER=ollama          # ollama or openai
-OPENAI_API_KEY=sk-...        # For OpenAI/compatible APIs
-OPENAI_BASE_URL=https://...  # ^
-DEFAULT_MODEL=llama3.1       # Model name
-
-# AI Behavior
-SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
-```
 
 ## 🤝 Contributing
 
@@ -168,6 +201,6 @@ This work is licensed under a
 
 ---
 
-**Start your journey of self-discovery today.** Your thoughts deserve to be remembered, understood, and connected. 
+**Start your journey of self-discovery today.** Your thoughts deserve to be remembered, understood, and connected.
 
-*Made with ❤️ by developers who believe in privacy-first AI*
+_Made with ❤️ by developers who believe in privacy-first AI_

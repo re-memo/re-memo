@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { MessageSquareDashed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ChatBubble } from "./ui/chat-bubble";
-import { useTopics } from "@/hooks/useApi";
+import { useAsyncOperation } from "@/hooks/useCommon";
 import { Button } from "./ui/button";
+import { ErrorMessage } from "./ErrorBoundary";
 import api from "@/services/api";
 
 // Loading animation component for animated dots
@@ -19,20 +20,41 @@ const LoadingBubbles = () => {
 
 const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
   const [review, setReview] = useState(null);
+  const { isLoading, error, execute: executeReview } = useAsyncOperation();
 
   useEffect(() => {
-    // Fetch the review once
+    if (!entryID) return;
+
     const fetchReview = async () => {
       try {
-        const response = await api.ai.reviewEntry(entryID);
-        setReview(response);
+        await executeReview(async () => {
+          const response = await api.ai.reviewEntry(entryID);
+          setReview(response);
+        });
+      } catch (error) {
+        console.error("Error fetching review:", error);
+        setReview("NO_REVIEW");
+      }
+    };
+
+    fetchReview();
+  }, [entryID]);
+
+  const handleRetry = () => {
+    setReview(null);
+    const fetchReview = async () => {
+      try {
+        await executeReview(async () => {
+          const response = await api.ai.reviewEntry(entryID);
+          setReview(response);
+        });
       } catch (error) {
         console.error("Error fetching review:", error);
         setReview("NO_REVIEW");
       }
     };
     fetchReview();
-  }, [entryID]);
+  };
 
   if (!isOpen) return null;
 
@@ -67,13 +89,15 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
         {/* Scrollable Review Content */}
         <div className="flex-[1_1_0] flex flex-col px-6 pb-6 overflow-hidden">
           <div className="flex-1 flex flex-col space-y-4 overflow-y-auto text-sm pr-2">
-            {!review && <LoadingBubbles />}
-            {review &&
+            {error && (
+              <ErrorMessage error={error} onRetry={handleRetry} />
+            )}
+            {isLoading && <LoadingBubbles />}
+            {!isLoading && !error && review && review.fact_reviews &&
               review.fact_reviews.map((factReview, index) => (
-                <>
+                <React.Fragment key={index}>
                   <ChatBubble
                     role="user"
-                    key={index}
                     className="bg-secondary text-foreground opacity-0 animate-fade-in"
                     style={{
                       animationDelay: `${index * 400 - 200}ms`,
@@ -85,7 +109,6 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
                   </ChatBubble>
                   <ChatBubble
                     role="assistant"
-                    key={`review-${index}`}
                     className="bg-primary text-foreground opacity-0 animate-fade-in"
                     style={{
                       animationDelay: `${index * 400}ms`,
@@ -95,7 +118,7 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
                   >
                     {factReview.review}
                   </ChatBubble>
-                </>
+                </React.Fragment>
               ))}
           </div>
         </div>

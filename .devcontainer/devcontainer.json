@@ -1,0 +1,74 @@
+{
+  "name": "re-memo Development Environment",
+  "dockerComposeFile": ["docker-compose.yml"],
+  // Ensure the env file is picked up by docker-compose
+  // Fail if the .env file is missing
+  "initializeCommand": "bash .devcontainer/init.sh",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.black-formatter",
+        "ms-python.pylint",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-json",
+        "ms-vscode.vscode-eslint",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode.vscode-docker",
+        "ms-vscode.hexeditor",
+        "formulahendry.auto-rename-tag",
+        "christian-kohler.path-intellisense",
+        "usernamehw.errorlens",
+        "ms-vscode.vscode-thunder-client",
+        "ms-vscode.live-server"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": true
+        },
+        "files.exclude": {
+          "**/__pycache__": true,
+          "**/.pytest_cache": true,
+          "**/node_modules": true,
+          "**/.git": false
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "tailwindCSS.includeLanguages": {
+          "javascript": "javascript",
+          "javascriptreact": "javascriptreact"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 8080, 5432],
+  "portsAttributes": {
+    "3000": {
+      "label": "Frontend (Vite)",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Backend API",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "remoteUser": "vscode",
+  "containerUser": "vscode",
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh"
+}

@@ -4,7 +4,6 @@ Application configuration and settings.
 
 from pydantic_settings import BaseSettings
 from typing import Optional
-import os
 
 
 class Settings(BaseSettings):
@@ -32,24 +31,19 @@ class Settings(BaseSettings):
     
     # AI Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_DIMENSION: int = 1536  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
+    EMBEDDING_DIMENSION: int = 384  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
     SYSTEM_PROMPT: str = "You are a helpful AI assistant for journaling and self-reflection."
     MAX_FACTS_PER_ENTRY: int = 20
-    
-    # Feature Flags
-    ENABLE_VOICE: bool = True
-    MAX_ENTRY_LENGTH: int = 10000
     
     @property
     def database_url(self) -> str:
         """Get the database URL for SQLAlchemy."""
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
-    
-    model_config = {
-        "env_file": ".env",
-        "case_sensitive": True
-    }
 
+    @property
+    def sync_database_url(self) -> str:
+        """Get the synchronous database URL for SQLAlchemy."""
+        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
 # Global settings instance
 settings = Settings()
