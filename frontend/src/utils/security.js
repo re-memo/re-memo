@@ -9,7 +9,7 @@
  */
 export function sanitizeHtml(input) {
   if (!input) return '';
-  
+
   const div = document.createElement('div');
   div.textContent = input;
   return div.innerHTML;
@@ -22,23 +22,23 @@ export function sanitizeHtml(input) {
  */
 export function validateJournalEntry(entry) {
   const errors = [];
-  
+
   if (!entry.title || entry.title.trim().length === 0) {
     errors.push('Title is required');
   }
-  
+
   if (entry.title && entry.title.length > 200) {
     errors.push('Title must be less than 200 characters');
   }
-  
+
   if (!entry.content || entry.content.trim().length === 0) {
     errors.push('Content is required');
   }
-  
+
   if (entry.content && entry.content.length > 50000) {
     errors.push('Content must be less than 50,000 characters');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors,
@@ -54,10 +54,10 @@ export function validateSearchQuery(query) {
   if (!query || typeof query !== 'string') {
     return { isValid: false, sanitized: '' };
   }
-  
+
   // Remove potentially dangerous characters
   const sanitized = query.replace(/[<>\"'&]/g, '').trim();
-  
+
   return {
     isValid: sanitized.length > 0 && sanitized.length <= 100,
     sanitized,
@@ -76,25 +76,25 @@ export class RateLimiter {
 
   canMakeCall() {
     const now = Date.now();
-    
+
     // Remove old calls outside the window
     this.calls = this.calls.filter(time => now - time < this.windowMs);
-    
+
     // Check if we can make a new call
     if (this.calls.length < this.maxCalls) {
       this.calls.push(now);
       return true;
     }
-    
+
     return false;
   }
 
   getTimeUntilReset() {
     if (this.calls.length === 0) return 0;
-    
+
     const oldestCall = Math.min(...this.calls);
     const resetTime = oldestCall + this.windowMs;
-    
+
     return Math.max(0, resetTime - Date.now());
   }
 }
@@ -117,9 +117,9 @@ export const CSP = {
         '127.0.0.1',
         window.location.hostname,
       ];
-      
+
       return allowedProtocols.includes(parsed.protocol) &&
-             (allowedDomains.includes(parsed.hostname) || parsed.protocol === 'data:');
+        (allowedDomains.includes(parsed.hostname) || parsed.protocol === 'data:');
     } catch {
       return false;
     }

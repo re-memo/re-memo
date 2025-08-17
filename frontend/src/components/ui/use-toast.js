@@ -1,7 +1,7 @@
 import { toast as sonnerToast } from "sonner"
 
 const toast = ({ ...props }) => {
-  return sonnerToast({...props})
+  return sonnerToast({ ...props })
 }
 
 const useToast = () => {
@@ -11,4 +11,4 @@ const useToast = () => {
   }
 }
 
-export { useToast, toast }
+export { toast, useToast }

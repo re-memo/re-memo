@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { useIntersectionObserver } from '@/hooks/usePerformance';
+import { useIntersectionObserver } from "@/hooks/usePerformance";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 /**
  * Virtual list component for rendering large lists efficiently
  */
-export function VirtualList({ 
-  items, 
-  renderItem, 
-  itemHeight = 100, 
+export function VirtualList({
+  items,
+  renderItem,
+  itemHeight = 100,
   containerHeight = 400,
   overscan = 5,
-  className = '',
+  className = "",
   loading = false,
-  LoadingComponent = null
+  LoadingComponent = null,
 }) {
   const [scrollTop, setScrollTop] = useState(0);
   const containerRef = useRef(null);
@@ -26,7 +26,7 @@ export function VirtualList({
     return {
       start: adjustedStart,
       end,
-      visibleItems: items.slice(adjustedStart, end)
+      visibleItems: items.slice(adjustedStart, end),
     };
   }, [scrollTop, itemHeight, containerHeight, overscan, items]);
 
@@ -48,10 +48,13 @@ export function VirtualList({
       style={{ height: containerHeight }}
       onScroll={handleScroll}
     >
-      <div style={{ height: totalHeight, position: 'relative' }}>
+      <div style={{ height: totalHeight, position: "relative" }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleRange.visibleItems.map((item, index) => (
-            <div key={item.id || visibleRange.start + index} style={{ height: itemHeight }}>
+            <div
+              key={item.id || visibleRange.start + index}
+              style={{ height: itemHeight }}
+            >
               {renderItem(item, visibleRange.start + index)}
             </div>
           ))}
@@ -64,12 +67,12 @@ export function VirtualList({
 /**
  * Lazy loaded item component
  */
-export function LazyItem({ children, threshold = 0.1, rootMargin = '50px' }) {
+export function LazyItem({ children, threshold = 0.1, rootMargin = "50px" }) {
   const [isVisible, setIsVisible] = useState(false);
   const [ref, inView] = useIntersectionObserver({
     threshold,
     rootMargin,
-    triggerOnce: true
+    triggerOnce: true,
   });
 
   useEffect(() => {

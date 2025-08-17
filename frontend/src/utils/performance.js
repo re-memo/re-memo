@@ -16,10 +16,10 @@ export class PerformanceMonitor {
    */
   startTiming(componentName) {
     if (!performance?.mark) return;
-    
+
     const startMark = `${componentName}-start`;
     performance.mark(startMark);
-    
+
     return {
       end: () => this.endTiming(componentName, startMark),
     };
@@ -33,15 +33,15 @@ export class PerformanceMonitor {
 
     const endMark = `${componentName}-end`;
     const measureName = `${componentName}-duration`;
-    
+
     performance.mark(endMark);
     performance.measure(measureName, startMark, endMark);
-    
+
     const measure = performance.getEntriesByName(measureName)[0];
     if (measure) {
       this.recordMetric(componentName, measure.duration);
     }
-    
+
     // Cleanup
     performance.clearMarks(startMark);
     performance.clearMarks(endMark);
@@ -130,7 +130,7 @@ export function usePerformanceMonitor(componentName) {
 
   useEffect(() => {
     startTime.current = performance.now();
-    
+
     return () => {
       if (startTime.current) {
         const duration = performance.now() - startTime.current;
@@ -157,32 +157,32 @@ export const BundleAnalyzer = {
     if (typeof window !== 'undefined' && window.performance) {
       const navEntries = performance.getEntriesByType('navigation');
       const resourceEntries = performance.getEntriesByType('resource');
-      
+
       console.group('Bundle Analysis');
-      
+
       if (navEntries.length > 0) {
         const nav = navEntries[0];
         console.log('Page Load Time:', Math.round(nav.loadEventEnd - nav.fetchStart), 'ms');
         console.log('DOM Content Loaded:', Math.round(nav.domContentLoadedEventEnd - nav.fetchStart), 'ms');
       }
-      
+
       // JavaScript bundles
-      const jsResources = resourceEntries.filter(entry => 
+      const jsResources = resourceEntries.filter(entry =>
         entry.name.includes('.js') && !entry.name.includes('node_modules')
       );
-      
+
       console.log('JavaScript Resources:');
       jsResources.forEach(resource => {
         console.log(`  ${resource.name.split('/').pop()}: ${Math.round(resource.duration)}ms`);
       });
-      
+
       // CSS bundles
       const cssResources = resourceEntries.filter(entry => entry.name.includes('.css'));
       console.log('CSS Resources:');
       cssResources.forEach(resource => {
         console.log(`  ${resource.name.split('/').pop()}: ${Math.round(resource.duration)}ms`);
       });
-      
+
       console.groupEnd();
     }
   },
@@ -220,7 +220,7 @@ export class LongTaskDetector {
           this.recordLongTask(entry);
         }
       });
-      
+
       observer.observe({ entryTypes: ['longtask'] });
     }
   }
@@ -232,17 +232,17 @@ export class LongTaskDetector {
       name: entry.name,
       attribution: entry.attribution,
     };
-    
+
     this.longTasks.push(task);
-    
+
     // Keep only last 50 long tasks
     if (this.longTasks.length > 50) {
       this.longTasks.shift();
     }
-    
+
     // Notify observers
     this.observers.forEach(observer => observer(task));
-    
+
     console.warn(`Long task detected: ${Math.round(entry.duration)}ms`, entry);
   }
 

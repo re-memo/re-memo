@@ -1,31 +1,31 @@
+import { DEFAULT_VALUES } from "@/constants";
 import { useAutoSave, useEntry } from "@/hooks/useApi";
 import { useAsyncOperation } from "@/hooks/useCommon";
 import { useScreenReader } from "@/utils/accessibility";
-import { validateJournalEntry } from "@/utils/security";
-import { DEFAULT_VALUES } from "@/constants";
 import { formatDate, formatTime } from "@/utils/helpers";
-import React, { useRef, useState, useCallback } from "react";
+import { validateJournalEntry } from "@/utils/security";
+import { useCallback, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
-import { MDXEditor } from "@mdxeditor/editor";
 import {
-  listsPlugin,
-  quotePlugin,
+  codeBlockPlugin,
+  frontmatterPlugin,
   headingsPlugin,
   imagePlugin,
-  tablePlugin,
-  frontmatterPlugin,
-  codeBlockPlugin,
+  listsPlugin,
   markdownShortcutPlugin,
+  MDXEditor,
+  quotePlugin,
+  tablePlugin,
 } from "@mdxeditor/editor";
 
+import { ErrorMessage } from "@/components/ErrorBoundary";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import "@mdxeditor/editor/style.css";
 import { Calendar, Download, Star, Trash } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Spinner } from "@/components/ui/spinner";
-import { ErrorMessage } from "@/components/ErrorBoundary";
 
 const defaultMarkdown = `# Untitled Entry
 Write your thoughts here...  
@@ -38,10 +38,12 @@ const JournalPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { entry, updateEntry, completeEntry, deleteEntry, loading, error } = useEntry(id);
+  const { entry, updateEntry, completeEntry, deleteEntry, loading, error } =
+    useEntry(id);
   const { isLoading: isDeleting, execute: executeDelete } = useAsyncOperation();
-  const { isLoading: isCompleting, execute: executeComplete } = useAsyncOperation();
-  
+  const { isLoading: isCompleting, execute: executeComplete } =
+    useAsyncOperation();
+
   const editorRef = useRef(null);
   const announce = useScreenReader();
 
@@ -52,7 +54,7 @@ const JournalPage = () => {
 
   const saveChanges = useCallback(async () => {
     if (!entry || !editorRef.current || entry?.status === "complete") return;
-    
+
     try {
       const markdown = editorRef.current.getMarkdown();
       const title = parseTitle(markdown);
@@ -60,7 +62,7 @@ const JournalPage = () => {
       // Validate entry data
       const validation = validateJournalEntry({ title, content: markdown });
       if (!validation.isValid) {
-        validation.errors.forEach(error => toast.error(error));
+        validation.errors.forEach((error) => toast.error(error));
         return;
       }
 
@@ -68,11 +70,11 @@ const JournalPage = () => {
         title,
         content: markdown,
       });
-      
-      announce('Entry saved successfully', 'polite');
+
+      announce("Entry saved successfully", "polite");
     } catch (error) {
       toast.error("Failed to save changes");
-      announce('Failed to save entry', 'assertive');
+      announce("Failed to save entry", "assertive");
       console.error("Save error:", error);
     }
   }, [entry, updateEntry, parseTitle, announce]);
@@ -82,33 +84,35 @@ const JournalPage = () => {
       await executeDelete(async () => {
         await deleteEntry(id);
         toast.success("Entry deleted successfully");
-        announce('Entry deleted', 'polite');
+        announce("Entry deleted", "polite");
         navigate("/journals");
       });
     } catch (error) {
       toast.error("Failed to delete entry");
-      announce('Failed to delete entry', 'assertive');
+      announce("Failed to delete entry", "assertive");
       console.error("Delete error:", error);
     }
   };
 
   const handleCompleteEntry = async () => {
     if (entry?.status === "complete") return;
-    
+
     try {
       await executeComplete(async () => {
         await completeEntry();
         toast.success("Entry completed successfully");
-        announce('Entry marked as complete', 'polite');
+        announce("Entry marked as complete", "polite");
       });
     } catch (error) {
       toast.error("Failed to complete entry");
-      announce('Failed to complete entry', 'assertive');
+      announce("Failed to complete entry", "assertive");
       console.error("Complete error:", error);
     }
   };
 
-  const { lastSaved } = useAutoSave(entry?.status === "complete" ? null : saveChanges);
+  const { lastSaved } = useAutoSave(
+    entry?.status === "complete" ? null : saveChanges
+  );
 
   if (error) {
     return (
@@ -152,9 +156,13 @@ const JournalPage = () => {
         </Button>
         <Switch
           checked={entry?.status === "complete"}
-          onCheckedChange={entry?.status === "complete" ? null : handleCompleteEntry}
+          onCheckedChange={
+            entry?.status === "complete" ? null : handleCompleteEntry
+          }
           disabled={entry?.status === "complete" || isDeleting || isCompleting}
-          aria-label={`Mark entry as ${entry?.status === "complete" ? "complete" : "draft"}`}
+          aria-label={`Mark entry as ${
+            entry?.status === "complete" ? "complete" : "draft"
+          }`}
         />
         <span className="text-muted-foreground">
           {entry?.status === "complete" ? "Complete" : "Draft"}
@@ -164,10 +172,10 @@ const JournalPage = () => {
         <Calendar size={18} className="text-muted-foreground mr-2" />
         <span className="text-muted-foreground">
           {formatDate(entry?.created_at, {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            weekday: 'long'
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            weekday: "long",
           })}
         </span>
         {entry?.status !== "complete" && lastSaved && (

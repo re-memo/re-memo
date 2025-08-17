@@ -1,6 +1,6 @@
-import React from 'react';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import React from "react";
 
 export function ErrorBoundary({ children }) {
   const [hasError, setHasError] = React.useState(false);
@@ -12,12 +12,12 @@ export function ErrorBoundary({ children }) {
       setError(error);
     };
 
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleError);
+    window.addEventListener("error", handleError);
+    window.addEventListener("unhandledrejection", handleError);
 
     return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleError);
+      window.removeEventListener("error", handleError);
+      window.removeEventListener("unhandledrejection", handleError);
     };
   }, []);
 
@@ -35,7 +35,7 @@ export function ErrorBoundary({ children }) {
             Something went wrong
           </h2>
           <p className="text-muted-foreground mb-6">
-            {error?.message || 'An unexpected error occurred'}
+            {error?.message || "An unexpected error occurred"}
           </p>
           <Button onClick={resetError} className="gap-2">
             <RefreshCw className="w-4 h-4" />
@@ -49,16 +49,18 @@ export function ErrorBoundary({ children }) {
   return children;
 }
 
-export function ErrorMessage({ error, onRetry, className = '' }) {
+export function ErrorMessage({ error, onRetry, className = "" }) {
   if (!error) return null;
 
   return (
-    <div className={`bg-destructive/10 border border-destructive/20 rounded-lg p-4 ${className}`}>
+    <div
+      className={`bg-destructive/10 border border-destructive/20 rounded-lg p-4 ${className}`}
+    >
       <div className="flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="text-sm text-destructive font-medium">
-            {error.message || 'An error occurred'}
+            {error.message || "An error occurred"}
           </p>
           {onRetry && (
             <Button

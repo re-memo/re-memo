@@ -1,17 +1,17 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { ErrorMessage } from "@/components/ErrorBoundary";
+import { LoadingCard } from "@/components/Loading";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Star, Calendar, Search, Filter } from "lucide-react";
 import { useEntries } from "@/hooks/useApi";
 import { useDebounce } from "@/hooks/useCommon";
-import { useMemoizedValue, useIntersectionObserver } from "@/hooks/usePerformance";
-import { Badge } from "@/components/ui/badge";
-import { LoadingCard, LoadingSkeleton } from "@/components/Loading";
-import { ErrorMessage } from "@/components/ErrorBoundary";
+import { useMemoizedValue } from "@/hooks/usePerformance";
+import { useScreenReader } from "@/utils/accessibility";
 import { formatDate, stripMarkdown, truncateText } from "@/utils/helpers";
 import { validateSearchQuery } from "@/utils/security";
-import { useScreenReader } from "@/utils/accessibility";
+import { Calendar, Plus, Search } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const AllJournalsPage = () => {
   const navigate = useNavigate();
@@ -25,30 +25,34 @@ const AllJournalsPage = () => {
   // Memoized filtered entries for better performance
   const filteredEntries = useMemoizedValue(() => {
     if (!entries) return [];
-    
+
     const { isValid, sanitized } = validateSearchQuery(debouncedSearch);
-    const searchTerm = isValid ? sanitized : '';
-    
-    return entries.filter(entry => {
-      const matchesSearch = !searchTerm || 
+    const searchTerm = isValid ? sanitized : "";
+
+    return entries.filter((entry) => {
+      const matchesSearch =
+        !searchTerm ||
         entry.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        stripMarkdown(entry.content).toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === "all" || entry.status === statusFilter;
-      
+        stripMarkdown(entry.content)
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+
+      const matchesStatus =
+        statusFilter === "all" || entry.status === statusFilter;
+
       return matchesSearch && matchesStatus;
     });
   }, [entries, debouncedSearch, statusFilter]);
 
   const handleRetry = () => {
     fetchEntries();
-    announce('Retrying to load entries', 'polite');
+    announce("Retrying to load entries", "polite");
   };
 
   const handleSearch = (value) => {
     setSearchQuery(value);
     if (value.length > 2) {
-      announce(`Searching for: ${value}`, 'polite');
+      announce(`Searching for: ${value}`, "polite");
     }
   };
 
@@ -59,7 +63,8 @@ const AllJournalsPage = () => {
         <div>
           <h1 className="text-3xl font-bold text-foreground">All Journals</h1>
           <p className="text-muted-foreground mt-1">
-            Your personal journal entries ({filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'})
+            Your personal journal entries ({filteredEntries.length}{" "}
+            {filteredEntries.length === 1 ? "entry" : "entries"})
           </p>
         </div>
 
@@ -76,7 +81,10 @@ const AllJournalsPage = () => {
       {/* Search and Filter */}
       <div className="flex gap-4 mb-6">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" size={16} />
+          <Search
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground"
+            size={16}
+          />
           <Input
             placeholder="Search entries..."
             value={searchQuery}
@@ -89,7 +97,7 @@ const AllJournalsPage = () => {
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
-            announce(`Filter changed to: ${e.target.value}`, 'polite');
+            announce(`Filter changed to: ${e.target.value}`, "polite");
           }}
           className="px-3 py-2 border border-border rounded-md bg-background text-foreground"
           aria-label="Filter by status"
@@ -131,8 +139,10 @@ const AllJournalsPage = () => {
                 </div>
 
                 <div className="flex items-center text-sm text-muted-foreground gap-2">
-                  <Badge 
-                    variant={journal.status === 'complete' ? 'default' : 'secondary'} 
+                  <Badge
+                    variant={
+                      journal.status === "complete" ? "default" : "secondary"
+                    }
                     className="capitalize"
                   >
                     {journal.status}
@@ -151,28 +161,34 @@ const AllJournalsPage = () => {
       )}
 
       {/* Empty State */}
-      {!loading && (!filteredEntries || filteredEntries.length === 0) && !error && (
-        <div className="text-center py-20">
-          <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-            <Calendar size={24} className="text-muted-foreground" />
+      {!loading &&
+        (!filteredEntries || filteredEntries.length === 0) &&
+        !error && (
+          <div className="text-center py-20">
+            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+              <Calendar size={24} className="text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium text-foreground mb-2">
+              {entries?.length === 0
+                ? "No journal entries yet"
+                : "No entries match your search"}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {entries?.length === 0
+                ? "Start documenting your thoughts and experiences."
+                : "Try adjusting your search or filters."}
+            </p>
+            {entries?.length === 0 && (
+              <Button
+                onClick={() => navigate("/journal/new")}
+                className="gap-2"
+              >
+                <Plus size={16} />
+                Create your first entry
+              </Button>
+            )}
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">
-            {entries?.length === 0 ? "No journal entries yet" : "No entries match your search"}
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            {entries?.length === 0 
-              ? "Start documenting your thoughts and experiences." 
-              : "Try adjusting your search or filters."
-            }
-          </p>
-          {entries?.length === 0 && (
-            <Button onClick={() => navigate("/journal/new")} className="gap-2">
-              <Plus size={16} />
-              Create your first entry
-            </Button>
-          )}
-        </div>
-      )}
+        )}
     </div>
   );
 };

@@ -1,10 +1,9 @@
-import React from "react";
-import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Star, Archive, MessageSquare, Menu, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useKeyboard, useScreenReader, ARIA } from "@/utils/accessibility";
 import { ROUTES } from "@/constants";
+import { cn } from "@/lib/utils";
+import { ARIA, useKeyboard, useScreenReader } from "@/utils/accessibility";
+import { Archive, Menu, MessageSquare, Plus, Star } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
   const navigate = useNavigate();
@@ -18,17 +17,17 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
 
   const handleNavigation = (path, description) => {
     navigate(path);
-    announce(`Navigated to ${description}`, 'polite');
+    announce(`Navigated to ${description}`, "polite");
     if (isMobile && onToggle) {
       onToggle();
     }
   };
 
   // Keyboard navigation for sidebar
-  useKeyboard(['Escape'], () => {
+  useKeyboard(["Escape"], () => {
     if (isMobile && isOpen && onToggle) {
       onToggle();
-      announce('Sidebar closed', 'polite');
+      announce("Sidebar closed", "polite");
     }
   });
 
@@ -86,8 +85,10 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
             <Plus size={16} className="mr-2" />
             new entry.
           </Button>
-          <p id="new-entry-help" className="sr-only">Create a new journal entry</p>
-          
+          <p id="new-entry-help" className="sr-only">
+            Create a new journal entry
+          </p>
+
           <Button
             variant="ghost"
             className={cn(
@@ -106,8 +107,10 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
             <Archive size={16} className="mr-2" />
             all journals.
           </Button>
-          <p id="all-journals-help" className="sr-only">View all journal entries</p>
-          
+          <p id="all-journals-help" className="sr-only">
+            View all journal entries
+          </p>
+
           <Button
             variant="ghost"
             className={cn(
@@ -126,7 +129,9 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
             <span className="text-muted-foreground">re:</span>
             <span>flect</span>
           </Button>
-          <p id="chat-help" className="sr-only">Open AI reflection chat</p>
+          <p id="chat-help" className="sr-only">
+            Open AI reflection chat
+          </p>
         </div>
 
         {/* Favourite Notes Section */}

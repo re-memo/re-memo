@@ -1,13 +1,13 @@
-import React, { useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { DEFAULT_VALUES } from "@/constants";
 import MainLayout from "@/components/MainLayout";
-import JournalPage from "@/pages/JournalPage";
-import ChatPage from "@/pages/ChatPage";
+import { DEFAULT_VALUES } from "@/constants";
 import AllJournalsPage from "@/pages/AllJournalsPage";
+import ChatPage from "@/pages/ChatPage";
+import JournalPage from "@/pages/JournalPage";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { Toaster } from "sonner";
 
 import api from "@/services/api";
 
@@ -69,11 +69,11 @@ function App() {
                 <Route path="chat/:sessionId" element={<ChatPage />} />
               </Route>
             </Routes>
-            <Toaster 
+            <Toaster
               position="top-center"
               toastOptions={{
                 duration: 4000,
-                className: "card text-foreground"
+                className: "card text-foreground",
               }}
             />
           </div>

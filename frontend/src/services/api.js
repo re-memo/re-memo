@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { config } from '@/config/env';
+import axios from 'axios';
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
@@ -45,14 +45,14 @@ apiClient.interceptors.response.use(
     const details = error.response?.data?.details;
 
     console.error('API Response Error:', { message, status, code, details });
-    
+
     // Handle common errors
     if (status === 401) {
       console.warn('Unauthorized access');
     } else if (status >= 500) {
       console.error('Server error occurred');
     }
-    
+
     // Create enhanced error object
     const apiError = new ApiError(message, status, code, details);
     return Promise.reject(apiError);

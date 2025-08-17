@@ -7,9 +7,9 @@ import { useMemoizedValue, useThrottle } from "@/hooks/usePerformance";
 import { useKeyboard, useScreenReader } from "@/utils/accessibility";
 import { formatDate } from "@/utils/helpers";
 import { RateLimiter, validateSearchQuery } from "@/utils/security";
-import { eachDayOfInterval, endOfToday, format, subDays } from 'date-fns';
-import { useCallback, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { eachDayOfInterval, endOfToday, format, subDays } from "date-fns";
+import { useCallback, useState } from "react";
+import { useParams } from "react-router-dom";
 
 // Rate limiting for reflections
 const reflectionRateLimiter = new RateLimiter(10, 60000); // 10 calls per minute
@@ -24,14 +24,14 @@ const LoadingBubbles = () => (
 
 const ChatPage = () => {
   const { sessionId } = useParams();
-  
+
   // State management
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState("");
   const [cards, setCards] = useState([]);
-  const [reflection, setReflection] = useState('');
+  const [reflection, setReflection] = useState("");
   const [selectedNote, setSelectedNote] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  
+
   // Async operations
   const { isLoading, error, execute: executeReflection } = useAsyncOperation();
   const announce = useScreenReader();
@@ -39,20 +39,20 @@ const ChatPage = () => {
   // Memoized heatmap data generation for performance
   const generateHeatmapData = useMemoizedValue(() => {
     if (!cards.length) return [];
-    
+
     const endDate = endOfToday();
     const startDate = subDays(endDate, 34); // 35 days = 5 weeks
     const days = eachDayOfInterval({ start: startDate, end: endDate });
 
     const noteCounts = cards.reduce((acc, note) => {
-      const key = format(new Date(note.date), 'yyyy-MM-dd');
+      const key = format(new Date(note.date), "yyyy-MM-dd");
       acc[key] = (acc[key] || 0) + 1;
       return acc;
     }, {});
 
     const heatmap = days.map((date) => ({
       date,
-      count: noteCounts[format(date, 'yyyy-MM-dd')] || 0,
+      count: noteCounts[format(date, "yyyy-MM-dd")] || 0,
     }));
 
     while (heatmap.length < 35) {
@@ -64,53 +64,52 @@ const ChatPage = () => {
   }, [cards]);
 
   const getColorClass = useCallback((count) => {
-    if (count === 0) return 'bg-muted';
-    if (count < 2) return 'bg-green-100';
-    if (count < 4) return 'bg-green-300';
-    if (count < 6) return 'bg-green-500';
-    return 'bg-green-700';
+    if (count === 0) return "bg-muted";
+    if (count < 2) return "bg-green-100";
+    if (count < 4) return "bg-green-300";
+    if (count < 6) return "bg-green-500";
+    return "bg-green-700";
   }, []);
 
   // Throttled fetch function to prevent spam
   const throttledFetch = useThrottle(async (query) => {
     const { isValid, sanitized } = validateSearchQuery(query);
     if (!isValid) {
-      announce('Invalid search query', 'assertive');
+      announce("Invalid search query", "assertive");
       return;
     }
 
     // Check rate limiting
     if (!reflectionRateLimiter.canMakeCall()) {
-      const waitTime = Math.ceil(reflectionRateLimiter.getTimeUntilReset() / 1000);
-      announce(`Rate limited. Please wait ${waitTime} seconds.`, 'assertive');
+      const waitTime = Math.ceil(
+        reflectionRateLimiter.getTimeUntilReset() / 1000
+      );
+      announce(`Rate limited. Please wait ${waitTime} seconds.`, "assertive");
       return;
     }
 
     try {
       await executeReflection(async () => {
         // Clear previous results
-        setReflection('');
+        setReflection("");
         setCards([]);
 
-        const resp = await fetch(
-          `/ai/get-reflection`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: sanitized, limit: 5 }),
-          },
-        );
-        
+        const resp = await fetch(`/api/ai/get-reflection`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: sanitized, limit: 5 }),
+        });
+
         if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
         const data = await resp.json();
 
-        setReflection(data.reflection || '');
+        setReflection(data.reflection || "");
         setCards(data.notes || []);
-        announce(`Found ${data.notes?.length || 0} related notes`, 'polite');
+        announce(`Found ${data.notes?.length || 0} related notes`, "polite");
       });
     } catch (err) {
-      console.error('Error fetching reflection:', err);
-      announce('Failed to fetch reflection', 'assertive');
+      console.error("Error fetching reflection:", err);
+      announce("Failed to fetch reflection", "assertive");
     }
   }, 2000);
 
@@ -127,21 +126,13 @@ const ChatPage = () => {
   const handleNoteClick = (note) => {
     setSelectedNote(note);
     setModalOpen(true);
-    announce(`Opened note: ${note.title || 'Untitled'}`, 'polite');
+    announce(`Opened note: ${note.title || "Untitled"}`, "polite");
   };
 
-  // Keyboard shortcuts
-  useKeyboard(['Enter'], (e) => {
-    if (e.target.tagName === 'INPUT' && e.ctrlKey) {
-      e.preventDefault();
-      fetchReflection();
-    }
-  });
-
-  useKeyboard(['Escape'], () => {
+  useKeyboard(["Escape"], () => {
     if (modalOpen) {
       setModalOpen(false);
-      announce('Note dialog closed', 'polite');
+      announce("Note dialog closed", "polite");
     }
   });
 
@@ -149,7 +140,11 @@ const ChatPage = () => {
     <div className="max-w-4xl mx-auto">
       {/* Error Display */}
       {error && (
-        <ErrorMessage error={error} onRetry={fetchReflection} className="mb-6" />
+        <ErrorMessage
+          error={error}
+          onRetry={fetchReflection}
+          className="mb-6"
+        />
       )}
 
       {/* Prompt input */}
@@ -159,15 +154,12 @@ const ChatPage = () => {
             type="text"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Find accurate notes, explore or bet on serendipity (Ctrl+Enter to search)"
+            placeholder="Find accurate notes, explore or bet on serendipity"
             className="w-full"
             disabled={isLoading}
             aria-label="Search query"
             aria-describedby="search-help"
           />
-          <p id="search-help" className="text-xs text-muted-foreground mt-1">
-            Use Ctrl+Enter to search, or press Enter in the input field
-          </p>
         </form>
       </div>
 
@@ -183,7 +175,11 @@ const ChatPage = () => {
             </h3>
 
             <div className="flex justify-center">
-              <div className="grid grid-cols-7 grid-rows-5 gap-1" role="img" aria-label="Activity heatmap">
+              <div
+                className="grid grid-cols-7 grid-rows-5 gap-1"
+                role="img"
+                aria-label="Activity heatmap"
+              >
                 {(() => {
                   const data = generateHeatmapData;
                   const weeks = Array.from({ length: 5 }, (_, i) =>
@@ -193,13 +189,21 @@ const ChatPage = () => {
                     weeks.map((week) => week[dayIdx])
                   );
 
-                  return transposed.flat().map((day, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-3 h-3 rounded-sm ${getColorClass(day?.count || 0)}`}
-                      title={day ? `${formatDate(day.date)}: ${day.count} notes` : 'No data'}
-                    />
-                  ));
+                  return transposed
+                    .flat()
+                    .map((day, idx) => (
+                      <div
+                        key={idx}
+                        className={`w-3 h-3 rounded-sm ${getColorClass(
+                          day?.count || 0
+                        )}`}
+                        title={
+                          day
+                            ? `${formatDate(day.date)}: ${day.count} notes`
+                            : "No data"
+                        }
+                      />
+                    ));
                 })()}
               </div>
             </div>
@@ -227,7 +231,7 @@ const ChatPage = () => {
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
                     handleNoteClick(note);
                   }
@@ -238,14 +242,18 @@ const ChatPage = () => {
                 </h3>
                 {note.date && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(note.date, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {formatDate(note.date, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </p>
                 )}
               </div>
             ))}
           </div>
-      </div>
-    )}
+        </div>
+      )}
 
       {/* Reflection display block */}
       {reflection && (
@@ -253,7 +261,7 @@ const ChatPage = () => {
           <h3 className="mb-2 text-lg font-semibold">Reflection</h3>
           <ul className="list-disc pl-6 space-y-1 text-sm text-muted-foreground">
             {reflection
-              .split('.')
+              .split(".")
               .map((sentence) => sentence.trim())
               .filter(Boolean)
               .map((sentence, idx) => (
@@ -268,16 +276,19 @@ const ChatPage = () => {
         <DialogContent className="max-w-2xl" aria-labelledby="note-title">
           {selectedNote && (
             <div className="space-y-4">
-              <h2 id="note-title" className="text-xl font-semibold text-foreground">
-                {selectedNote.title || 'Untitled Note'}
+              <h2
+                id="note-title"
+                className="text-xl font-semibold text-foreground"
+              >
+                {selectedNote.title || "Untitled Note"}
               </h2>
               {selectedNote.date && (
                 <p className="text-sm text-muted-foreground">
-                  {formatDate(selectedNote.date, { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric',
-                    weekday: 'long'
+                  {formatDate(selectedNote.date, {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                    weekday: "long",
                   })}
                 </p>
               )}
@@ -288,7 +299,6 @@ const ChatPage = () => {
           )}
         </DialogContent>
       </Dialog>
-
     </div>
   );
 };

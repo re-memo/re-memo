@@ -14,7 +14,7 @@ export function useDevLogger(componentName, props = {}) {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       console.log(`🔄 ${componentName} rendered (${renderCount.current})`);
-      
+
       // Log prop changes
       const changedProps = {};
       Object.keys(props).forEach(key => {
@@ -66,7 +66,7 @@ export const MockDataGenerator = {
     ];
 
     const statuses = ['draft', 'complete'];
-    
+
     return Array.from({ length: count }, (_, i) => ({
       id: `mock-${i + 1}`,
       title: titles[i % titles.length] + ` ${i + 1}`,
@@ -227,11 +227,10 @@ export function DevToolsPanel() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm capitalize ${
-                  activeTab === tab
+                className={`px-4 py-2 text-sm capitalize ${activeTab === tab
                     ? 'bg-blue-500 text-white'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                  }`}
               >
                 {tab}
               </button>
@@ -257,7 +256,7 @@ function PerformanceTab() {
     const unsubscribe = performanceMonitor.subscribe(() => {
       setMetrics(performanceMonitor.getAllMetrics());
     });
-    
+
     setMetrics(performanceMonitor.getAllMetrics());
     return unsubscribe;
   }, []);
@@ -315,9 +314,8 @@ function FeatureFlagsTab() {
           <span className="text-sm">{flag}</span>
           <button
             onClick={() => toggleFlag(flag)}
-            className={`text-xs px-2 py-1 rounded ${
-              enabled ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700'
-            }`}
+            className={`text-xs px-2 py-1 rounded ${enabled ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700'
+              }`}
           >
             {enabled ? 'ON' : 'OFF'}
           </button>

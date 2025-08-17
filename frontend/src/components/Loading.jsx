@@ -1,5 +1,4 @@
-import React from 'react';
-import { Spinner } from '@/components/ui/spinner';
+import { Spinner } from "@/components/ui/spinner";
 
 export function LoadingPage({ message = "Loading..." }) {
   return (

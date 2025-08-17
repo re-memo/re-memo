@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { MessageSquareDashed } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { ChatBubble } from "./ui/chat-bubble";
 import { useAsyncOperation } from "@/hooks/useCommon";
-import { Button } from "./ui/button";
-import { ErrorMessage } from "./ErrorBoundary";
+import { cn } from "@/lib/utils";
 import api from "@/services/api";
+import React, { useEffect, useState } from "react";
+import { ErrorMessage } from "./ErrorBoundary";
+import { ChatBubble } from "./ui/chat-bubble";
 
 // Loading animation component for animated dots
 const LoadingBubbles = () => {
@@ -89,11 +87,12 @@ const ReviewSidebar = ({ isOpen, onToggle, isMobile, entryID }) => {
         {/* Scrollable Review Content */}
         <div className="flex-[1_1_0] flex flex-col px-6 pb-6 overflow-hidden">
           <div className="flex-1 flex flex-col space-y-4 overflow-y-auto text-sm pr-2">
-            {error && (
-              <ErrorMessage error={error} onRetry={handleRetry} />
-            )}
+            {error && <ErrorMessage error={error} onRetry={handleRetry} />}
             {isLoading && <LoadingBubbles />}
-            {!isLoading && !error && review && review.fact_reviews &&
+            {!isLoading &&
+              !error &&
+              review &&
+              review.fact_reviews &&
               review.fact_reviews.map((factReview, index) => (
                 <React.Fragment key={index}>
                   <ChatBubble

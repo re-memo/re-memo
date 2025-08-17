@@ -158,7 +158,7 @@ export const ColorContrast = {
     const luminance2 = this.getLuminance(color2);
     const brightest = Math.max(luminance1, luminance2);
     const darkest = Math.min(luminance1, luminance2);
-    
+
     return (brightest + 0.05) / (darkest + 0.05);
   },
 

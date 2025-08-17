@@ -1,12 +1,11 @@
-import * as React from 'react';
-import * as DialogPrimitive from '@radix-ui/react-dialog';
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import * as React from "react";
 
 /**
  * Utility to merge class names.
  * (The same helper pattern you use elsewhere.)
  */
-export const cn = (...classes) =>
-  classes.filter(Boolean).join(' ');
+export const cn = (...classes) => classes.filter(Boolean).join(" ");
 
 /* ---------- Root + Trigger re-exports ---------- */
 export const Dialog = DialogPrimitive.Root;
@@ -14,8 +13,7 @@ export const DialogTrigger = DialogPrimitive.Trigger;
 
 /* ---------- Content ---------- */
 export const DialogContent = React.forwardRef(
-  ({ className = '', children, ...props }, ref) => {
-
+  ({ className = "", children, ...props }, ref) => {
     return (
       <DialogPrimitive.Portal>
         {/* Backdrop */}
@@ -25,11 +23,11 @@ export const DialogContent = React.forwardRef(
         <DialogPrimitive.Content
           ref={ref}
           className={cn(
-            'fixed z-50 top-1/2 left-1/2 w-[90%] max-w-2xl',
-            '-translate-x-1/2 -translate-y-1/2',
-            'rounded-lg border border-border bg-card p-6 shadow-xl',
-            'focus:outline-none',
-            className,
+            "fixed z-50 top-1/2 left-1/2 w-[90%] max-w-2xl",
+            "-translate-x-1/2 -translate-y-1/2",
+            "rounded-lg border border-border bg-card p-6 shadow-xl",
+            "focus:outline-none",
+            className
           )}
           {...props}
         >
@@ -43,6 +41,6 @@ export const DialogContent = React.forwardRef(
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     );
-  },
+  }
 );
-DialogContent.displayName = 'DialogContent';
+DialogContent.displayName = "DialogContent";

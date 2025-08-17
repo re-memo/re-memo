@@ -7,18 +7,18 @@
  */
 export function textToMarkdown(text) {
   if (!text) return '';
-  
+
   // Basic auto-formatting
   let markdown = text;
-  
+
   // Convert URLs to markdown links
   const urlRegex = /(https?:\/\/[^\s]+)/g;
   markdown = markdown.replace(urlRegex, '[$1]($1)');
-  
+
   // Convert email addresses to mailto links
   const emailRegex = /(\S+@\S+\.\S+)/g;
   markdown = markdown.replace(emailRegex, '[mailto:$1]($1)');
-  
+
   return markdown;
 }
 
@@ -27,7 +27,7 @@ export function textToMarkdown(text) {
  */
 export function markdownToText(markdown) {
   if (!markdown) return '';
-  
+
   return markdown
     // Remove headers
     .replace(/^#{1,6}\s+/gm, '')
@@ -54,7 +54,7 @@ export function markdownToText(markdown) {
  */
 export function countWords(text) {
   if (!text) return 0;
-  
+
   const plainText = markdownToText(text);
   const words = plainText.split(/\s+/).filter(word => word.length > 0);
   return words.length;
@@ -65,7 +65,7 @@ export function countWords(text) {
  */
 export function countCharacters(text) {
   if (!text) return 0;
-  
+
   const plainText = markdownToText(text);
   return plainText.length;
 }
@@ -85,21 +85,21 @@ export function estimateReadingTime(text) {
  */
 export function generatePreview(text, maxLength = 150) {
   if (!text) return '';
-  
+
   const plainText = markdownToText(text);
-  
+
   if (plainText.length <= maxLength) {
     return plainText;
   }
-  
+
   // Find a good break point (word boundary)
   const truncated = plainText.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
-  
+
   if (lastSpace > 0 && lastSpace > maxLength * 0.7) {
     return truncated.substring(0, lastSpace) + '...';
   }
-  
+
   return truncated + '...';
 }
 
@@ -108,29 +108,29 @@ export function generatePreview(text, maxLength = 150) {
  */
 export function validateMarkdown(text) {
   const errors = [];
-  
+
   if (!text) return { isValid: true, errors };
-  
+
   // Check for unclosed code blocks
   const codeBlocks = (text.match(/```/g) || []).length;
   if (codeBlocks % 2 !== 0) {
     errors.push('Unclosed code block detected');
   }
-  
+
   // Check for unmatched brackets in links
   const openBrackets = (text.match(/\[/g) || []).length;
   const closeBrackets = (text.match(/\]/g) || []).length;
   const openParens = (text.match(/\(/g) || []).length;
   const closeParens = (text.match(/\)/g) || []).length;
-  
+
   if (openBrackets !== closeBrackets) {
     errors.push('Unmatched square brackets in links');
   }
-  
+
   if (openParens !== closeParens) {
     errors.push('Unmatched parentheses in links');
   }
-  
+
   return {
     isValid: errors.length === 0,
     errors
@@ -143,10 +143,10 @@ export function validateMarkdown(text) {
 export function insertMarkdown(text, cursorPosition, type) {
   const before = text.slice(0, cursorPosition);
   const after = text.slice(cursorPosition);
-  
+
   let insertion = '';
   let newCursorPosition = cursorPosition;
-  
+
   switch (type) {
     case 'bold':
       insertion = '**bold text**';
@@ -187,7 +187,7 @@ export function insertMarkdown(text, cursorPosition, type) {
     default:
       return { text, cursorPosition };
   }
-  
+
   return {
     text: before + insertion + after,
     cursorPosition: newCursorPosition

@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { Outlet, useParams, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Menu, Moon, Sun } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useLocalStorage, useResponsive, useDebounce } from "@/hooks/useCommon";
-import { useThrottle } from "@/hooks/usePerformance";
 import { STORAGE_KEYS } from "@/constants";
+import { useDebounce, useLocalStorage, useResponsive } from "@/hooks/useCommon";
+import { useThrottle } from "@/hooks/usePerformance";
+import { cn } from "@/lib/utils";
 import { validateSearchQuery } from "@/utils/security";
+import { Menu, Moon, Search, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
-import RightSidebar from "./RightSidebar";
 import ReviewSidebar from "./ReviewSidebar";
+import RightSidebar from "./RightSidebar";
 
 const MainLayout = () => {
   const { id: entryID } = useParams();
   const location = useLocation();
   const { isMobile } = useResponsive();
-  
+
   const [darkMode, setDarkMode] = useLocalStorage(
     STORAGE_KEYS.DARK_MODE,
     window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -32,7 +32,7 @@ const MainLayout = () => {
     const { isValid, sanitized } = validateSearchQuery(query);
     if (isValid && sanitized.length > 2) {
       // Trigger search API call here if needed
-      console.log('Searching for:', sanitized);
+      console.log("Searching for:", sanitized);
     }
   }, 1000);
 

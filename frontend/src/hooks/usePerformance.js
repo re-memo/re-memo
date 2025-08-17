@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
  * Hook for memoizing expensive computations
@@ -11,7 +11,7 @@ export function useMemoizedValue(compute, deps) {
   const depsRef = useRef();
 
   // Check if dependencies have changed
-  const depsChanged = !depsRef.current || 
+  const depsChanged = !depsRef.current ||
     deps.length !== depsRef.current.length ||
     deps.some((dep, index) => dep !== depsRef.current[index]);
 
@@ -55,7 +55,7 @@ export function useLazyImage(src, placeholder = '') {
 
   useEffect(() => {
     const img = new Image();
-    
+
     img.onload = () => {
       setState({
         src,
