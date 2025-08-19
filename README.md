@@ -4,9 +4,6 @@
 
 **re:memo** is a privacy-focused AI journaling application that transforms your thoughts into structured insights while keeping your data under your control. Built during a 30-hour hackathon, it combines the intimacy of personal journaling with the power of AI to help you understand patterns in your life, remember important details, and gain deeper self-awareness.
 
-## 🌟 Motivation
-
-In our fast-paced world, we often lose track of our thoughts, experiences, and personal growth. Traditional journaling is powerful but can feel overwhelming - where do you start? What should you write about? How do you find patterns in months of entries?
 
 **re:memo** solves these problems by:
 
@@ -19,9 +16,9 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!NOTE]
 > re:memo is designed with privacy as a first-class citizen. You can run everything locally or choose hybrid setups based on your comfort level with external services.
 
-## 🚀 Key Features
+## Key Features
 
-### ✅ Core Features (MVP)
+### Core Features 
 
 - [x] **Markdown Journal Editor** - Write with live preview, just like Obsidian
 - [x] **AI-Powered Processing** - Automatically extract events, facts, and insights from entries
@@ -35,13 +32,13 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!TIP]
 > The vector search allows you to find entries by meaning, not just keywords. Ask "when was I feeling anxious about work?" instead of searching for specific terms.
 
-### 🔄 In Development
+### In Development
 
 - [ ] **Voice Journaling** - Speak your thoughts, get structured journal entries
 - [ ] **Advanced Fact Management** - Smart handling of changing preferences and contradictions
 - [ ] **Rich Text Search** - Full-text fuzzy search across all journal entries
 
-### 🎯 Future Enhancements
+### Future Enhancements
 
 - [ ] **Insights Dashboard** - Visualize emotions, themes, and growth over time
 - [ ] **Habit Tracking Integration** - Connect journal insights with behavior patterns
@@ -53,7 +50,7 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!NOTE]
 > Feature development prioritizes user privacy and data ownership. Community feedback shapes our roadmap.
 
-## 🏗️ Architecture
+## Architecture
 
 ### Tech Stack
 
@@ -68,7 +65,7 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!INFO]
 > The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries.
 
-## 💡 How It Works
+## How It Works
 
 1. **Write Naturally** - Use the markdown editor to journal however feels comfortable
 2. **AI Processing** - When you mark an entry complete, AI extracts key facts, events, and topics
@@ -79,7 +76,7 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!TIP]
 > The system learns your writing patterns and personal topics over time. The more you write, the better it gets at providing relevant prompts and insights.
 
-## 🎯 Use Cases
+## Use Cases
 
 - **Daily Reflection** - Process your day with AI-guided prompts
 - **Therapy Support** - Structured self-reflection between sessions
@@ -91,7 +88,7 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 > [!NOTE]
 > Many users find re:memo particularly helpful for identifying emotional patterns and tracking personal growth over extended periods.
 
-## 🚀 Getting Started
+## Getting Started
 
 Ready to begin your journaling journey? Check out our [Setup Guide](SETUP.md) for detailed installation instructions.
 
@@ -102,7 +99,7 @@ cd re-memo
 # Follow the instructions in SETUP.md
 ```
 
-## 🤝 Contributing
+## Contributing
 
 This project started as a hackathon but we welcome contributions! Areas where help is needed:
 
@@ -118,7 +115,7 @@ This project started as a hackathon but we welcome contributions! Areas where he
 > [!TIP]
 > For AI/ML contributions, we're particularly interested in prompt engineering for different LLM models and improving the fact extraction pipeline.
 
-## 📄 License
+## License
 
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
@@ -131,7 +128,7 @@ This work is licensed under a
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
 [cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Built during AI Engine: Hackathon 2025
 - Inspired by tools like Obsidian, Day One, and Roam Research
