@@ -1,3 +1,6 @@
+# <p align="center" width="100%"><img width="250" height="250" alt="re:memo" align="center" src="https://github.com/user-attachments/assets/142110dc-9567-4e24-9837-e2d4d7d143a5" /><p/>
+
+
 # re:memo
 
 > AI-assisted journaling that helps you remember, reflect, and grow
@@ -16,7 +19,7 @@
 > [!NOTE]
 > re:memo is designed with privacy as a first-class citizen. You can run everything locally or choose hybrid setups based on your comfort level with external services.
 
-## Key Features
+## 🚀 Key Features
 
 ### Core Features 
 
@@ -32,13 +35,13 @@
 > [!TIP]
 > The vector search allows you to find entries by meaning, not just keywords. Ask "when was I feeling anxious about work?" instead of searching for specific terms.
 
-### In Development
+### 🔄 In Development
 
 - [ ] **Voice Journaling** - Speak your thoughts, get structured journal entries
 - [ ] **Advanced Fact Management** - Smart handling of changing preferences and contradictions
 - [ ] **Rich Text Search** - Full-text fuzzy search across all journal entries
 
-### Future Enhancements
+### 🎯 Future Enhancements
 
 - [ ] **Insights Dashboard** - Visualize emotions, themes, and growth over time
 - [ ] **Habit Tracking Integration** - Connect journal insights with behavior patterns
@@ -50,7 +53,7 @@
 > [!NOTE]
 > Feature development prioritizes user privacy and data ownership. Community feedback shapes our roadmap.
 
-## Architecture
+## 🏗️ Architecture
 
 ### Tech Stack
 
@@ -65,7 +68,7 @@
 > [!INFO]
 > The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries.
 
-## How It Works
+## 💡 How It Works
 
 1. **Write Naturally** - Use the markdown editor to journal however feels comfortable
 2. **AI Processing** - When you mark an entry complete, AI extracts key facts, events, and topics
@@ -76,7 +79,7 @@
 > [!TIP]
 > The system learns your writing patterns and personal topics over time. The more you write, the better it gets at providing relevant prompts and insights.
 
-## Use Cases
+## 🎯 Use Cases
 
 - **Daily Reflection** - Process your day with AI-guided prompts
 - **Therapy Support** - Structured self-reflection between sessions
@@ -99,7 +102,7 @@ cd re-memo
 # Follow the instructions in SETUP.md
 ```
 
-## Contributing
+## 🤝 Contributing
 
 This project started as a hackathon but we welcome contributions! Areas where help is needed:
 
@@ -115,7 +118,7 @@ This project started as a hackathon but we welcome contributions! Areas where he
 > [!TIP]
 > For AI/ML contributions, we're particularly interested in prompt engineering for different LLM models and improving the fact extraction pipeline.
 
-## License
+## 📄 License
 
 Shield: [![CC BY-NC-SA 4.0][cc-by-nc-sa-shield]][cc-by-nc-sa]
 
@@ -128,7 +131,7 @@ This work is licensed under a
 [cc-by-nc-sa-image]: https://licensebuttons.net/l/by-nc-sa/4.0/88x31.png
 [cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
 
-## Acknowledgments
+## 🙏 Acknowledgments
 
 - Built during AI Engine: Hackathon 2025
 - Inspired by tools like Obsidian, Day One, and Roam Research
