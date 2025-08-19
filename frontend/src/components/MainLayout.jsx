@@ -83,7 +83,7 @@ const MainLayout = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col bg-background">
         {/* Top Bar */}
-        <div className="flex items-center justify-between p-4 border-b-4 border-black bg-card h-[73px] relative">
+        <div className="flex items-center justify-between p-4 border-b-4 border-border bg-card h-[73px] relative">
           {/* Hacky hide the left sidebar border with the background color */}
           {!isMobile && (
             <div className="absolute inset-0 -left-3 w-4 z-50 bg-card" />
