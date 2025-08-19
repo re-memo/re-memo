@@ -9,6 +9,36 @@ This guide will walk you through setting up re:memo on your system. Choose the d
 
 > [!TIP]
 > New to Docker? Check out the [Docker installation guide](https://docs.docker.com/get-docker/) for your operating system. Docker Desktop includes both Docker and Docker Compose.
+---
+## Security Considerations
+
+### Authentication
+
+> [!WARNING]
+> re:memo does not include built-in authentication. For production deployments, implement proper authentication and authorization.
+
+Recommended approaches:
+- **NGINX reverse proxy** with client certificates
+- **OAuth2 proxy** with your identity provider
+- **VPN-only access** for personal deployments
+- **Cloudflare Access** for cloud deployments
+
+### Data Protection
+
+- **Encryption at rest**: Use encrypted storage for your Docker volumes
+- **Network security**: Run behind a firewall, use HTTPS in production
+- **Backup strategy**: Implement regular backups of your database
+- **Access logs**: Monitor who accesses your re:memo instance
+
+### Privacy Best Practices
+
+- **Local-first**: Use Option A for maximum privacy
+- **API key management**: Store API keys securely, rotate regularly
+- **Data retention**: Consider implementing automatic data purging policies
+- **Export capabilities**: Ensure you can export your data if needed
+
+---
+
 
 ## Quick Start
 
@@ -159,10 +189,14 @@ OPENAI_BASE_URL=https://api.openai.com/v1  # or your private endpoint
 docker-compose up -d
 ```
 
-Configure your `.env` file with external service endpoints:
+Configure your .env file with external database connection details:
 ```bash
-# Database
-DATABASE_URL=postgresql://user:pass@your-db-host:5432/rememo
+# Database (external Postgres)
+DB_HOST=your-db-host
+DB_PORT=5432
+DB_NAME=rememo
+DB_USER=your-username
+DB_PASSWORD=your-password
 
 # LLM
 LLM_PROVIDER=openai
@@ -255,33 +289,6 @@ If you encounter issues:
 
 > [!TIP]
 > When reporting issues, include the output of `docker-compose ps` and relevant log snippets from `docker-compose logs`.
-
-## Security Considerations
-
-### Authentication
-
-> [!WARNING]
-> re:memo does not include built-in authentication. For production deployments, implement proper authentication and authorization.
-
-Recommended approaches:
-- **NGINX reverse proxy** with client certificates
-- **OAuth2 proxy** with your identity provider
-- **VPN-only access** for personal deployments
-- **Cloudflare Access** for cloud deployments
-
-### Data Protection
-
-- **Encryption at rest**: Use encrypted storage for your Docker volumes
-- **Network security**: Run behind a firewall, use HTTPS in production
-- **Backup strategy**: Implement regular backups of your database
-- **Access logs**: Monitor who accesses your re:memo instance
-
-### Privacy Best Practices
-
-- **Local-first**: Use Option A for maximum privacy
-- **API key management**: Store API keys securely, rotate regularly
-- **Data retention**: Consider implementing automatic data purging policies
-- **Export capabilities**: Ensure you can export your data if needed
 
 ---
 
