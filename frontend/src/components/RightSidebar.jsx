@@ -88,7 +88,7 @@ const RightSidebar = ({ isOpen, onToggle, isMobile }) => {
 
       <div
         className={cn(
-          "flex flex-col w-80 border-l-4 border-black bg-card h-full",
+          "flex flex-col w-80 border-l-4 border-border bg-card h-full",
           isMobile && "fixed right-0 top-0 h-full z-50"
         )}
       >

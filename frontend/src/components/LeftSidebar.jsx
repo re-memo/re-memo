@@ -47,12 +47,12 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
 
       <div
         className={cn(
-          "flex flex-col border-r-4 border-black bg-card",
+          "flex flex-col border-r-4 border-border bg-card",
           isMobile ? "fixed left-0 top-0 h-full z-50 w-80" : "w-80"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b-4 border-black bg-card h-[73px]">
+        <div className="flex items-center justify-between p-4 border-b-4 border-border bg-card h-[73px]">
           <div className="flex items-center space-x-0">
             {isMobile && (
               <Button
