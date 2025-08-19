@@ -1,6 +1,6 @@
-# <p align="center" width="100%"><img width="250" height="250" alt="re:memo" align="center" src="https://github.com/user-attachments/assets/142110dc-9567-4e24-9837-e2d4d7d143a5" /><p/>
+# re:memo
 
-> _AI-assisted journaling that helps you remember, reflect, and grow_
+> AI-assisted journaling that helps you remember, reflect, and grow
 
 **re:memo** is a privacy-focused AI journaling application that transforms your thoughts into structured insights while keeping your data under your control. Built during a 30-hour hackathon, it combines the intimacy of personal journaling with the power of AI to help you understand patterns in your life, remember important details, and gain deeper self-awareness.
 
@@ -16,6 +16,9 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 - **Respecting your privacy** with local AI options and full data control
 - **Making reflection effortless** through intelligent suggestions and chat-based exploration
 
+> [!NOTE]
+> re:memo is designed with privacy as a first-class citizen. You can run everything locally or choose hybrid setups based on your comfort level with external services.
+
 ## 🚀 Key Features
 
 ### ✅ Core Features (MVP)
@@ -28,6 +31,9 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 - [x] **Privacy-First Design** - Optional local LLM support with Ollama
 - [x] **Docker Deployment** - One-command setup with docker-compose
 - [x] **Entry Review System** - AI-generated insights and connections to past entries
+
+> [!TIP]
+> The vector search allows you to find entries by meaning, not just keywords. Ask "when was I feeling anxious about work?" instead of searching for specific terms.
 
 ### 🔄 In Development
 
@@ -44,6 +50,9 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
 - [ ] **Advanced Privacy** - End-to-end encryption options
 - [ ] **Collaboration Features** - Share insights with therapists or coaches (opt-in)
 
+> [!NOTE]
+> Feature development prioritizes user privacy and data ownership. Community feedback shapes our roadmap.
+
 ## 🏗️ Architecture
 
 ### Tech Stack
@@ -56,100 +65,8 @@ In our fast-paced world, we often lose track of our thoughts, experiences, and p
   - Embeddings: HuggingFace sentence-transformers
 - **Deployment**: Docker + Docker Compose
 
-## 🔧 Configuration
-
-Key environment variables:
-
-```bash
-# LLM Configuration
-LLM_PROVIDER=openai          # ollama (local) or openai compatible (external)
-OPENAI_API_KEY=sk-...        # For external OpenAI external
-OPENAI_BASE_URL=https://...  # ^
-DEFAULT_MODEL=gpt-4o-mini    # Model name
-
-# AI Behavior
-SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
-                                     # More env var customisability coming soon!
-
-# Frontend Configuration
-VITE_API_BASE_URL=https://localhost:8080/api # or wherever your backend will live
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker & Docker Compose
-- (Optional) NVIDIA GPU for local LLM support
-
-### 1. Clone and Configure
-
-```bash
-git clone https://github.com/your-username/re-memo.git
-cd re-memo
-cp .env.example .env
-# Edit .env with your preferences
-```
-
-### 2. Choose Your Setup
-
 > [!INFO]
-> Prebuilt images coming soon!
-
-#### Frontend
-
-Do a production build of the frontend React application.
-You can use the devcontainer or attach to the frontend service in docker-compose.dev.yml
-Don't forget to configure the backend base URL!
-
-```bash
-npm run build
-```
-
-Copy the output folder to a webserver (nginx, cloudflare).
-
-#### Backend
-
-> [!CAUTION]
-> re:memo does not include an authentication mechanism out-of-the-box. You will have to do this yourself,
-> especially if you plan to make it internet accessible!
->
-> A simple setup could include an NGINX reverse proxy
-> with client certificate authentication.
-
-> [!TIP]
-> So far, we have tested the default prompt flows with Mistral 3.2 Instruct and GPT 4o-mini.
-> However, we would like to build a reference of LLM models and model-specific prompts that work well with re:memo!
-
-**Option A: Full Privacy (Local AI)**
-
-```bash
-# Requires GPU for optimal performance
-docker-compose --profile llm-selfhost --profile db-selfhost up -d
-```
-
-**Option B: Hybrid (Local DB + External OpenAI API / Ollama API compatible provider)**
-
-> [!NOTE]
-> This option can still be private! You might have your LLM service privately hosted elsewhere :)
-
-```bash
-docker-compose --profile db-selfhost up -d
-```
-
-**Option C: Backend Only**
-
-> [!NOTE]
-> Like before, this is still private if you already have a private Postgres + LLM provider elsewhere :)
-
-```bash
-# Fastest setup for testing
-docker-compose up -d
-```
-
-### 3. Start Journaling
-
-Navigate to `http://localhost:8080` and start writing!
+> The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries.
 
 ## 💡 How It Works
 
@@ -158,6 +75,9 @@ Navigate to `http://localhost:8080` and start writing!
 3. **Build Your Memory** - Facts are stored as searchable embeddings in your personal database
 4. **Get Suggestions** - Next time you write, get personalized prompts based on your history
 5. **Chat & Explore** - Ask questions about your past entries through the chat interface
+
+> [!TIP]
+> The system learns your writing patterns and personal topics over time. The more you write, the better it gets at providing relevant prompts and insights.
 
 ## 🎯 Use Cases
 
@@ -168,6 +88,20 @@ Navigate to `http://localhost:8080` and start writing!
 - **Memory Palace** - Never lose important thoughts or realizations
 - **Personal Research** - Chat with your past self to find insights
 
+> [!NOTE]
+> Many users find re:memo particularly helpful for identifying emotional patterns and tracking personal growth over extended periods.
+
+## 🚀 Getting Started
+
+Ready to begin your journaling journey? Check out our [Setup Guide](SETUP.md) for detailed installation instructions.
+
+For a quick start:
+```bash
+git clone https://github.com/your-username/re-memo.git
+cd re-memo
+# Follow the instructions in SETUP.md
+```
+
 ## 🤝 Contributing
 
 This project started as a hackathon but we welcome contributions! Areas where help is needed:
@@ -177,6 +111,12 @@ This project started as a hackathon but we welcome contributions! Areas where he
 - **Privacy Features** - Enhanced security and data protection
 - **Mobile Development** - React Native companion app
 - **Documentation** - User guides and developer docs
+
+> [!INFO]
+> Check our [Issues](https://github.com/your-username/re-memo/issues) for current development priorities and contribution opportunities.
+
+> [!TIP]
+> For AI/ML contributions, we're particularly interested in prompt engineering for different LLM models and improving the fact extraction pipeline.
 
 ## 📄 License
 
@@ -203,4 +143,4 @@ This work is licensed under a
 
 **Start your journey of self-discovery today.** Your thoughts deserve to be remembered, understood, and connected.
 
-_Made with ❤️ by developers who believe in privacy-first AI_
+*Made with care by developers who believe in privacy-first AI*
