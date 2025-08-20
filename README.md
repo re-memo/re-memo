@@ -1,12 +1,14 @@
 # <p align="center" width="100%"><img width="250" height="250" alt="re:memo" align="center" src="https://github.com/user-attachments/assets/142110dc-9567-4e24-9837-e2d4d7d143a5" /><p/>
 
-
 # re:memo
 
 > AI-assisted journaling that helps you remember, reflect, and grow
 
 **re:memo** is a privacy-focused AI journaling application that transforms your thoughts into structured insights while keeping your data under your control. Built during a 30-hour hackathon, it combines the intimacy of personal journaling with the power of AI to help you understand patterns in your life, remember important details, and gain deeper self-awareness.
 
+## 🌟 Motivation
+
+- In our fast-paced world, we often lose track of our thoughts, experiences, and personal growth. Traditional journaling is powerful but can feel overwhelming - where do you start? What should you write about? How do you find patterns in months of entries?
 
 **re:memo** solves these problems by:
 
@@ -21,7 +23,7 @@
 
 ## 🚀 Key Features
 
-### Core Features 
+### Core Features
 
 - [x] **Markdown Journal Editor** - Write with live preview, just like Obsidian
 - [x] **AI-Powered Processing** - Automatically extract events, facts, and insights from entries
@@ -65,7 +67,7 @@
   - Embeddings: HuggingFace sentence-transformers
 - **Deployment**: Docker + Docker Compose
 
-> [!INFO]
+> [!NOTE]
 > The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries.
 
 ## 💡 How It Works
@@ -96,6 +98,7 @@
 Ready to begin your journaling journey? Check out our [Setup Guide](SETUP.md) for detailed installation instructions.
 
 For a quick start:
+
 ```bash
 git clone https://github.com/your-username/re-memo.git
 cd re-memo
@@ -112,7 +115,7 @@ This project started as a hackathon but we welcome contributions! Areas where he
 - **Mobile Development** - React Native companion app
 - **Documentation** - User guides and developer docs
 
-> [!INFO]
+> [!NOTE]
 > Check our [Issues](https://github.com/your-username/re-memo/issues) for current development priorities and contribution opportunities.
 
 > [!TIP]
@@ -143,4 +146,4 @@ This work is licensed under a
 
 **Start your journey of self-discovery today.** Your thoughts deserve to be remembered, understood, and connected.
 
-*Made with care by developers who believe in privacy-first AI*
+_Made with ❤️ by developers who believe in privacy-first AI_

@@ -9,7 +9,9 @@ This guide will walk you through setting up re:memo on your system. Choose the d
 
 > [!TIP]
 > New to Docker? Check out the [Docker installation guide](https://docs.docker.com/get-docker/) for your operating system. Docker Desktop includes both Docker and Docker Compose.
+
 ---
+
 ## Security Considerations
 
 ### Authentication
@@ -18,6 +20,7 @@ This guide will walk you through setting up re:memo on your system. Choose the d
 > re:memo does not include built-in authentication. For production deployments, implement proper authentication and authorization.
 
 Recommended approaches:
+
 - **NGINX reverse proxy** with client certificates
 - **OAuth2 proxy** with your identity provider
 - **VPN-only access** for personal deployments
@@ -38,7 +41,6 @@ Recommended approaches:
 - **Export capabilities**: Ensure you can export your data if needed
 
 ---
-
 
 ## Quick Start
 
@@ -68,11 +70,13 @@ See [Deployment Options](#deployment-options) for detailed instructions.
 ### 3. Verify Installation
 
 1. Check that services are running:
+
    ```bash
    docker-compose ps
    ```
 
 2. View logs if needed:
+
    ```bash
    docker-compose logs -f
    ```
@@ -109,13 +113,14 @@ VITE_API_BASE_URL=http://localhost:8080/api # Backend API endpoint
 > We've tested the default prompt flows with **Mistral 3.2 Instruct** and **GPT-4o-mini**. We're building a reference of compatible LLM models and model-specific prompts that work well with re:memo.
 
 Compatible models include:
+
 - **OpenAI**: gpt-4o, gpt-4o-mini, gpt-3.5-turbo
 - **Local (Ollama)**: mistral, llama2, codellama
 - **Other APIs**: Any OpenAI-compatible endpoint
 
 ## Deployment Options
 
-> [!INFO]
+> [!NOTE]
 > Prebuilt images coming soon to simplify deployment!
 
 ### Frontend Deployment
@@ -154,6 +159,7 @@ docker-compose --profile llm-selfhost --profile db-selfhost up -d
 ```
 
 This setup includes:
+
 - Local PostgreSQL database with pgvector
 - Ollama for local LLM inference
 - All data stays on your machine
@@ -171,6 +177,7 @@ docker-compose --profile db-selfhost up -d
 ```
 
 Configure your `.env` file:
+
 ```bash
 LLM_PROVIDER=openai
 OPENAI_API_KEY=your-api-key
@@ -190,6 +197,7 @@ docker-compose up -d
 ```
 
 Configure your .env file with external database connection details:
+
 ```bash
 # Database (external Postgres)
 DB_HOST=your-db-host
@@ -231,6 +239,7 @@ SYSTEM_PROMPT="You are a thoughtful journaling assistant focused on helping user
 ### Database Customization
 
 For production deployments, consider:
+
 - Using a managed PostgreSQL service
 - Setting up regular backups
 - Configuring connection pooling
@@ -241,6 +250,7 @@ For production deployments, consider:
 ### Common Issues
 
 **Service won't start:**
+
 ```bash
 # Check logs
 docker-compose logs -f [service-name]
@@ -250,17 +260,20 @@ netstat -tulpn | grep :8080
 ```
 
 **Frontend can't connect to backend:**
+
 - Verify `VITE_API_BASE_URL` in your `.env` file
 - Check if backend is running: `curl http://localhost:8080/health`
 - Look for CORS issues in browser developer tools
 
 **Ollama model download fails:**
+
 ```bash
 # Manual model pull
 docker-compose exec ollama ollama pull mistral
 ```
 
 **Database connection issues:**
+
 - Ensure PostgreSQL service is healthy: `docker-compose ps`
 - Check database logs: `docker-compose logs -f postgres`
 - Verify DATABASE_URL format
@@ -268,11 +281,13 @@ docker-compose exec ollama ollama pull mistral
 ### Performance Optimization
 
 **For local LLMs:**
+
 - Ensure you have sufficient RAM (8GB+ recommended)
 - Use GPU acceleration when available
 - Consider smaller models for better performance
 
 **For database:**
+
 - Adjust PostgreSQL memory settings for your system
 - Consider using SSD storage for better vector search performance
 
