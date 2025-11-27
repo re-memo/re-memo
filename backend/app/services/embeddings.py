@@ -99,7 +99,7 @@ class EmbeddingService:
             query_text: Text to search for
             session: Database session
             limit: Maximum number of results
-            user_id: Optional user ID to filter results
+            user_id: User ID to filter results (required for data isolation)
         """
         try:
             query_embedding = await self.generate_embedding(query_text)
@@ -107,21 +107,15 @@ class EmbeddingService:
             # Import here to avoid circular imports
             from app.models.facts import UserFact
             
+            # Always require user_id for data isolation
+            if user_id is None:
+                logger.warning("find_similar_facts called without user_id - returning empty results for security")
+                return []
+            
             # Use the model's similarity search with user filter
-            if user_id:
-                similar_facts = await UserFact.search_similar(
-                    session, user_id, query_embedding, limit
-                )
-            else:
-                # Fallback for backward compatibility - search all facts
-                from sqlalchemy.future import select
-                result = await session.execute(
-                    select(UserFact, (UserFact.embedding_vector.cosine_distance(query_embedding)).label('distance'))
-                    .where(UserFact.embedding_vector.is_not(None))
-                    .order_by(UserFact.embedding_vector.cosine_distance(query_embedding))
-                    .limit(limit)
-                )
-                similar_facts = [(fact, distance) for fact, distance in result.all()]
+            similar_facts = await UserFact.search_similar(
+                session, user_id, query_embedding, limit
+            )
             
             return similar_facts
             

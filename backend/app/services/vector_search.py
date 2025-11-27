@@ -67,21 +67,22 @@ class VectorSearchService:
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts that match both topic and semantic similarity.
+        
+        Args:
+            session: Database session
+            query_text: Text to search for
+            topic: Topic to filter by
+            limit: Maximum number of results
+            user_id: User ID to filter results (required for data isolation)
         """
         try:
-            # First get facts by topic (user-scoped if user_id provided)
-            if user_id:
-                topic_facts = await UserFact.get_by_topic(session, user_id, topic, limit * 2)
-            else:
-                # Fallback for backward compatibility
-                from sqlalchemy.future import select
-                result = await session.execute(
-                    select(UserFact)
-                    .where(UserFact.topic.ilike(f"%{topic}%"))
-                    .order_by(UserFact.timestamp.desc())
-                    .limit(limit * 2)
-                )
-                topic_facts = result.scalars().all()
+            # Always require user_id for data isolation
+            if user_id is None:
+                logger.warning("search_by_topic_and_similarity called without user_id - returning empty results for security")
+                return []
+            
+            # Get facts by topic (user-scoped)
+            topic_facts = await UserFact.get_by_topic(session, user_id, topic, limit * 2)
             
             if not topic_facts:
                 return []
@@ -146,28 +147,31 @@ class VectorSearchService:
     ) -> Dict[int, List[UserFact]]:
         """
         Cluster facts by semantic similarity.
+        
+        Args:
+            session: Database session
+            topic: Optional topic filter
+            n_clusters: Number of clusters to create
+            user_id: User ID to filter results (required for data isolation)
         """
         try:
-            # Get facts to cluster
-            if topic and user_id:
+            # Always require user_id for data isolation
+            if user_id is None:
+                logger.warning("get_fact_clusters called without user_id - returning empty results for security")
+                return {}
+            
+            # Get facts to cluster (user-scoped)
+            if topic:
                 facts = await UserFact.get_by_topic(session, user_id, topic, 100)
-            elif topic:
-                # Fallback without user_id
+            else:
+                # Get recent facts for user
                 from sqlalchemy.future import select
-                result = await session.execute(
+                query = (
                     select(UserFact)
-                    .where(UserFact.topic.ilike(f"%{topic}%"))
+                    .where(UserFact.user_id == user_id, UserFact.embedding_vector.isnot(None))
                     .order_by(UserFact.timestamp.desc())
                     .limit(100)
                 )
-                facts = result.scalars().all()
-            else:
-                # Get recent facts
-                from sqlalchemy.future import select
-                query = select(UserFact).where(UserFact.embedding_vector.isnot(None))
-                if user_id:
-                    query = query.where(UserFact.user_id == user_id)
-                query = query.order_by(UserFact.timestamp.desc()).limit(100)
                 result = await session.execute(query)
                 facts = result.scalars().all()
             

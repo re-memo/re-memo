@@ -28,6 +28,9 @@ services:
       - APP_PORT=80
       - DEBUG=${DEBUG:-false}
       - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this}
+      
+      # JWT Configuration - Required for authentication
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
 
       # Journal Configuration
       - MAX_FACTS_PER_ENTRY=${MAX_FACTS_PER_ENTRY:-20}

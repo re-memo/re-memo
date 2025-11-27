@@ -9,6 +9,8 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import secrets
+import bcrypt
 
 
 # revision identifiers, used by Alembic.
@@ -32,12 +34,21 @@ def upgrade() -> None:
     op.create_index(op.f('ix_users_id'), 'users', ['id'], unique=False)
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
 
-    # Create a default user for existing data (migration purposes)
-    op.execute("""
+    # Generate a secure random password for migration purposes
+    # This default user is only created if there is existing data to migrate
+    random_password = secrets.token_urlsafe(16)
+    password_hash = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    
+    # Create a default user for existing data (migration purposes only)
+    # Print the password to logs so the admin can use it to migrate, then should change it
+    print(f"[MIGRATION] Creating default_user with temporary password: {random_password}")
+    print("[MIGRATION] Please change this password after migration!")
+    
+    op.execute(f"""
         INSERT INTO users (id, username, password_hash, created_at, updated_at)
-        VALUES (1, 'default_user', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.7ZpHFRVSTkm.0G', NOW(), NOW())
+        VALUES (1, 'default_user', '{password_hash}', NOW(), NOW())
         ON CONFLICT DO NOTHING;
-    """)  # Password hash is for 'changeme'
+    """)
 
     # Add user_id column to journal_entries
     op.add_column('journal_entries', sa.Column('user_id', sa.Integer(), nullable=True))
