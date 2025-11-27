@@ -21,9 +21,15 @@ class ApiError extends Error {
   }
 }
 
-// Request interceptor for logging
+// Request interceptor for adding auth token and logging
 apiClient.interceptors.request.use(
   (config) => {
+    // Add JWT token to request if available
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
@@ -46,9 +52,13 @@ apiClient.interceptors.response.use(
 
     console.error('API Response Error:', { message, status, code, details });
 
-    // Handle common errors
+    // Handle 401 unauthorized - clear token and redirect to login
     if (status === 401) {
-      console.warn('Unauthorized access');
+      console.warn('Unauthorized access - clearing token');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Emit custom event for logout handling
+      window.dispatchEvent(new CustomEvent('auth:logout'));
     } else if (status >= 500) {
       console.error('Server error occurred');
     }
@@ -63,6 +73,69 @@ apiClient.interceptors.response.use(
  * API client for re:memo backend
  */
 const api = {
+  // Authentication operations
+  auth: {
+    /**
+     * Register a new user
+     */
+    register: async (username, password) => {
+      const response = await apiClient.post('/auth/register', {
+        username,
+        password
+      });
+      return response.data;
+    },
+
+    /**
+     * Login with username and password
+     */
+    login: async (username, password) => {
+      const response = await apiClient.post('/auth/login', {
+        username,
+        password
+      });
+      return response.data;
+    },
+
+    /**
+     * Get current user info
+     */
+    me: async () => {
+      const response = await apiClient.get('/auth/me');
+      return response.data;
+    },
+
+    /**
+     * Logout - clear local storage
+     */
+    logout: () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    },
+
+    /**
+     * Check if user is authenticated
+     */
+    isAuthenticated: () => {
+      return !!localStorage.getItem('token');
+    },
+
+    /**
+     * Get stored user info
+     */
+    getUser: () => {
+      const userJson = localStorage.getItem('user');
+      return userJson ? JSON.parse(userJson) : null;
+    },
+
+    /**
+     * Get stored token
+     */
+    getToken: () => {
+      return localStorage.getItem('token');
+    }
+  },
+
   // Journal operations
   journal: {
     /**

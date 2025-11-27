@@ -4,9 +4,10 @@ import { DEFAULT_VALUES } from "@/constants";
 import AllJournalsPage from "@/pages/AllJournalsPage";
 import ChatPage from "@/pages/ChatPage";
 import JournalPage from "@/pages/JournalPage";
+import LoginPage from "@/pages/LoginPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { BrowserRouter, Route, Routes, useNavigate, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 
 import api from "@/services/api";
@@ -53,14 +54,85 @@ const NewEntry = () => {
   return null;
 };
 
+// Protected route wrapper
+const ProtectedRoute = ({ children, isAuthenticated }) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
+
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(api.auth.isAuthenticated());
+  const [user, setUser] = useState(api.auth.getUser());
+
+  // Handle successful login
+  const handleLogin = useCallback((userData, token) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+    // Clear any cached queries to refetch with new user
+    queryClient.clear();
+  }, []);
+
+  // Handle logout
+  const handleLogout = useCallback(() => {
+    api.auth.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    queryClient.clear();
+  }, []);
+
+  // Listen for auth:logout events from API interceptor
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      queryClient.clear();
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+    };
+  }, []);
+
+  // Verify token on app load
+  useEffect(() => {
+    if (isAuthenticated) {
+      api.auth.me().catch(() => {
+        // Token is invalid, log out
+        handleLogout();
+      });
+    }
+  }, [isAuthenticated, handleLogout]);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <div className="min-h-screen bg-background text-foreground border-2 border-black">
             <Routes>
-              <Route path="/" element={<MainLayout />}>
+              {/* Login route */}
+              <Route
+                path="/login"
+                element={
+                  isAuthenticated ? (
+                    <Navigate to="/" replace />
+                  ) : (
+                    <LoginPage onLogin={handleLogin} />
+                  )
+                }
+              />
+
+              {/* Protected routes */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute isAuthenticated={isAuthenticated}>
+                    <MainLayout user={user} onLogout={handleLogout} />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<AllJournalsPage />} />
                 <Route path="journals" element={<AllJournalsPage />} />
                 <Route path="journal/new" element={<NewEntry />} />
@@ -68,6 +140,18 @@ function App() {
                 <Route path="chat" element={<ChatPage />} />
                 <Route path="chat/:sessionId" element={<ChatPage />} />
               </Route>
+
+              {/* Catch all - redirect to home or login */}
+              <Route
+                path="*"
+                element={
+                  isAuthenticated ? (
+                    <Navigate to="/" replace />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
             </Routes>
             <Toaster
               position="top-center"
