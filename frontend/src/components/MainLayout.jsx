@@ -5,14 +5,14 @@ import { useDebounce, useLocalStorage, useResponsive } from "@/hooks/useCommon";
 import { useThrottle } from "@/hooks/usePerformance";
 import { cn } from "@/lib/utils";
 import { validateSearchQuery } from "@/utils/security";
-import { Menu, Moon, Search, Sun } from "lucide-react";
+import { LogOut, Menu, Moon, Search, Sun, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useParams } from "react-router-dom";
 import LeftSidebar from "./LeftSidebar";
 import ReviewSidebar from "./ReviewSidebar";
 import RightSidebar from "./RightSidebar";
 
-const MainLayout = () => {
+const MainLayout = ({ user, onLogout }) => {
   const { id: entryID } = useParams();
   const location = useLocation();
   const { isMobile } = useResponsive();
@@ -116,6 +116,13 @@ const MainLayout = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* User info */}
+            {user && (
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground mr-2">
+                <User size={16} />
+                <span className="hidden sm:inline">{user.username}</span>
+              </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -132,6 +139,18 @@ const MainLayout = () => {
             >
               {darkMode ? <Sun size={16} /> : <Moon size={16} />}
             </Button>
+            {/* Logout button */}
+            {onLogout && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogout}
+                className="p-2"
+                title="Sign out"
+              >
+                <LogOut size={16} />
+              </Button>
+            )}
           </div>
         </div>
 
