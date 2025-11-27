@@ -4,6 +4,7 @@ Application configuration and settings.
 
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
 
 
 class Settings(BaseSettings):
@@ -29,8 +30,8 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = "your-secret-key-change-this"
     
-    # JWT Configuration
-    JWT_SECRET_KEY: str = "jwt-secret-key-change-this-in-production"
+    # JWT Configuration - No default for secret key to force explicit configuration
+    JWT_SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_HOURS: int = 24
     
@@ -39,6 +40,15 @@ class Settings(BaseSettings):
     EMBEDDING_DIMENSION: int = 384  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
     SYSTEM_PROMPT: str = "You are a helpful AI assistant for journaling and self-reflection."
     MAX_FACTS_PER_ENTRY: int = 20
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Validate JWT_SECRET_KEY is set
+        if not self.JWT_SECRET_KEY:
+            raise ValueError(
+                "JWT_SECRET_KEY environment variable must be set. "
+                "Generate a secure random key for production use."
+            )
     
     @property
     def database_url(self) -> str:

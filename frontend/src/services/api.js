@@ -22,6 +22,8 @@ class ApiError extends Error {
 }
 
 // Request interceptor for adding auth token and logging
+// Note: Token stored in localStorage for simplicity. For higher security requirements,
+// consider using httpOnly cookies or a more secure token storage mechanism.
 apiClient.interceptors.request.use(
   (config) => {
     // Add JWT token to request if available
