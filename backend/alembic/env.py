@@ -8,7 +8,7 @@ from alembic import context
 from app.config.settings import settings
 from app.models.database import Base
 # Register all models to ensure they are included in migrations
-from app.models import embeddings, journal, chat, facts
+from app.models import embeddings, journal, chat, facts, user
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

@@ -32,6 +32,7 @@ class UserFact(Base):
     __tablename__ = "user_facts"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     content = Column(Text, nullable=False)
     topic = Column(String(200), nullable=False, index=True)
     fact_type = Column(Enum(FactType), nullable=False)
@@ -45,12 +46,14 @@ class UserFact(Base):
     embedding_vector = Column(Vector(settings.EMBEDDING_DIMENSION), nullable=True)
     
     # Relationships
+    user = relationship("User", backref="facts")
     entry = relationship("JournalEntry", back_populates="facts", lazy="selectin")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "content": self.content,
             "topic": self.topic,
             "fact_type": self.fact_type.value,
@@ -60,11 +63,12 @@ class UserFact(Base):
         }
     
     @classmethod
-    async def create_bulk(cls, session: AsyncSession, facts_data: List[dict], entry_id: int) -> List["UserFact"]:
+    async def create_bulk(cls, session: AsyncSession, facts_data: List[dict], entry_id: int, user_id: int) -> List["UserFact"]:
         """Create multiple facts for an entry."""
         facts = []
         for fact_data in facts_data:
             fact = cls(
+                user_id=user_id,
                 content=fact_data["content"],
                 topic=fact_data["topic"],
                 fact_type=FactType(fact_data["fact_type"]),
@@ -79,20 +83,19 @@ class UserFact(Base):
         return facts
     
     @classmethod
-    async def get_by_topic(cls, session: AsyncSession, topic: str, limit: int = 20) -> List["UserFact"]:
-        """Get facts by topic."""
+    async def get_by_topic(cls, session: AsyncSession, user_id: int, topic: str, limit: int = 20) -> List["UserFact"]:
+        """Get facts by topic for a user."""
         result = await session.execute(
             select(cls)
-            .where(cls.topic.ilike(f"%{topic}%"))
+            .where(cls.user_id == user_id, cls.topic.ilike(f"%{topic}%"))
             .order_by(cls.timestamp.desc())
             .limit(limit)
         )
         return result.scalars().all()
     
     @classmethod
-    async def get_recent_topics(cls, session: AsyncSession, limit: int = 10) -> List[dict]:
-        """Get recent topics with fact counts."""
-        # Get most recent timestamp for each topic, then order by that timestamp
+    async def get_recent_topics(cls, session: AsyncSession, user_id: int, limit: int = 10) -> List[dict]:
+        """Get recent topics with fact counts for a user."""
         from sqlalchemy import func
         
         subquery = (
@@ -100,6 +103,7 @@ class UserFact(Base):
                 cls.topic,
                 func.max(cls.timestamp).label('latest_timestamp')
             )
+            .where(cls.user_id == user_id)
             .group_by(cls.topic)
             .subquery()
         )
@@ -119,17 +123,17 @@ class UserFact(Base):
     async def search_similar(
         cls, 
         session: AsyncSession, 
+        user_id: int,
         query_embedding: List[float], 
         limit: int = 10
     ) -> List[Tuple["UserFact", float]]:
         """
-        Find similar facts using vector similarity.
+        Find similar facts for a user using vector similarity.
         Uses pgvector cosine distance for similarity search.
         """
-        # Use pgvector's cosine distance operator
         result = await session.execute(
             select(cls, (cls.embedding_vector.cosine_distance(query_embedding)).label('distance'))
-            .where(cls.embedding_vector.is_not(None))
+            .where(cls.user_id == user_id, cls.embedding_vector.is_not(None))
             .order_by(cls.embedding_vector.cosine_distance(query_embedding))
             .limit(limit)
         )
@@ -147,11 +151,11 @@ class UserFact(Base):
         return result.scalars().all()
     
     @classmethod
-    async def get_by_fact_type(cls, session: AsyncSession, fact_type: FactType, limit: int = 20) -> List["UserFact"]:
-        """Get facts by type."""
+    async def get_by_fact_type(cls, session: AsyncSession, user_id: int, fact_type: FactType, limit: int = 20) -> List["UserFact"]:
+        """Get facts by type for a user."""
         result = await session.execute(
             select(cls)
-            .where(cls.fact_type == fact_type)
+            .where(cls.user_id == user_id, cls.fact_type == fact_type)
             .order_by(cls.timestamp.desc())
             .limit(limit)
         )
@@ -163,10 +167,11 @@ class UserFact(Base):
         await session.flush()
     
     @classmethod
-    async def get_recent(cls, session: AsyncSession, limit: int = 20) -> List["UserFact"]:
-        """Get recent facts across all entries."""
+    async def get_recent(cls, session: AsyncSession, user_id: int, limit: int = 20) -> List["UserFact"]:
+        """Get recent facts for a user across all entries."""
         result = await session.execute(
             select(cls)
+            .where(cls.user_id == user_id)
             .order_by(cls.timestamp.desc())
             .limit(limit)
         )

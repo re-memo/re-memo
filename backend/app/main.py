@@ -8,7 +8,7 @@ import os
 import logging
 from app.config.settings import settings
 from app.models.database import init_db
-from app.routes import journal, ai, chat
+from app.routes import journal, ai, chat, auth
 from app.services.service_manager import service_manager
 
 logger = logging.getLogger(__name__)
@@ -39,6 +39,7 @@ def create_app() -> Quart:
             raise
     
     # Register blueprints
+    app.register_blueprint(auth.bp, url_prefix='/api/auth')
     app.register_blueprint(journal.bp, url_prefix='/api/journal')
     app.register_blueprint(ai.bp, url_prefix='/api/ai')
     app.register_blueprint(chat.bp, url_prefix='/api/chat')

@@ -2,6 +2,10 @@
 quart
 quart-cors
 
+# Authentication
+PyJWT
+bcrypt
+
 # Database
 sqlalchemy
 asyncpg

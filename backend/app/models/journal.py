@@ -2,7 +2,7 @@
 Journal entry models and database operations.
 """
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum, func, ForeignKey
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import relationship
@@ -24,19 +24,22 @@ class JournalEntry(Base):
     __tablename__ = "journal_entries"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     content = Column(Text, nullable=False)
     status = Column(Enum(EntryStatus), default=EntryStatus.DRAFT)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship with user facts
+    # Relationships
+    user = relationship("User", backref="journal_entries")
     facts = relationship("UserFact", back_populates="entry", cascade="all, delete-orphan", lazy="selectin")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "title": self.title,
             "content": self.content,
             "status": self.status.value,
@@ -46,11 +49,12 @@ class JournalEntry(Base):
         }
     
     @classmethod
-    async def get_all(cls, session: AsyncSession, page: int = 1, limit: int = 20) -> List["JournalEntry"]:
-        """Get all journal entries with pagination."""
+    async def get_all(cls, session: AsyncSession, user_id: int, page: int = 1, limit: int = 20) -> List["JournalEntry"]:
+        """Get all journal entries for a user with pagination."""
         offset = (page - 1) * limit
         result = await session.execute(
             select(cls)
+            .where(cls.user_id == user_id)
             .order_by(cls.updated_at.desc())
             .offset(offset)
             .limit(limit)
@@ -58,18 +62,22 @@ class JournalEntry(Base):
         return result.scalars().all()
     
     @classmethod
-    async def count_all(cls, session: AsyncSession) -> int:
-        """Count total number of journal entries."""
-        result = await session.execute(select(func.count(cls.id)))
+    async def count_all(cls, session: AsyncSession, user_id: int) -> int:
+        """Count total number of journal entries for a user."""
+        result = await session.execute(
+            select(func.count(cls.id))
+            .where(cls.user_id == user_id)
+        )
         return result.scalar()
     
     @classmethod
-    async def count_search(cls, session: AsyncSession, query: str) -> int:
+    async def count_search(cls, session: AsyncSession, user_id: int, query: str) -> int:
         """Count search results for pagination."""
         search_term = f"%{query}%"
         result = await session.execute(
             select(func.count(cls.id))
             .where(
+                cls.user_id == user_id,
                 cls.title.ilike(search_term) | 
                 cls.content.ilike(search_term)
             )
@@ -77,15 +85,20 @@ class JournalEntry(Base):
         return result.scalar()
     
     @classmethod
-    async def get_by_id(cls, session: AsyncSession, entry_id: int) -> Optional["JournalEntry"]:
-        """Get a journal entry by ID."""
-        result = await session.execute(select(cls).where(cls.id == entry_id))
+    async def get_by_id(cls, session: AsyncSession, entry_id: int, user_id: int = None) -> Optional["JournalEntry"]:
+        """Get a journal entry by ID, optionally filtered by user."""
+        if user_id:
+            result = await session.execute(
+                select(cls).where(cls.id == entry_id, cls.user_id == user_id)
+            )
+        else:
+            result = await session.execute(select(cls).where(cls.id == entry_id))
         return result.scalars().first()
     
     @classmethod
-    async def create(cls, session: AsyncSession, title: str, content: str) -> "JournalEntry":
+    async def create(cls, session: AsyncSession, user_id: int, title: str, content: str) -> "JournalEntry":
         """Create a new journal entry."""
-        entry = cls(title=title, content=content)
+        entry = cls(user_id=user_id, title=title, content=content)
         session.add(entry)
         await session.flush()  # Flush to get the ID
         await session.refresh(entry)
@@ -110,13 +123,14 @@ class JournalEntry(Base):
         await session.flush()
     
     @classmethod
-    async def search(cls, session: AsyncSession, query: str, page: int = 1, limit: int = 20) -> List["JournalEntry"]:
+    async def search(cls, session: AsyncSession, user_id: int, query: str, page: int = 1, limit: int = 20) -> List["JournalEntry"]:
         """Search journal entries by content or title with pagination."""
         search_term = f"%{query}%"
         offset = (page - 1) * limit
         result = await session.execute(
             select(cls)
             .where(
+                cls.user_id == user_id,
                 cls.title.ilike(search_term) | 
                 cls.content.ilike(search_term)
             )
@@ -127,11 +141,11 @@ class JournalEntry(Base):
         return result.scalars().all()
     
     @classmethod
-    async def get_recent_completed(cls, session: AsyncSession, limit: int = 10) -> List["JournalEntry"]:
+    async def get_recent_completed(cls, session: AsyncSession, user_id: int, limit: int = 10) -> List["JournalEntry"]:
         """Get recently completed entries for AI processing."""
         result = await session.execute(
             select(cls)
-            .where(cls.status == EntryStatus.COMPLETE)
+            .where(cls.user_id == user_id, cls.status == EntryStatus.COMPLETE)
             .order_by(cls.updated_at.desc())
             .limit(limit)
         )

@@ -2,12 +2,13 @@
 Journal entry CRUD API routes.
 """
 
-from quart import Blueprint, request, jsonify
+from quart import Blueprint, request, jsonify, g
 from quart.helpers import make_response
 import logging
 from app.models.database import get_db_session
 from app.models.journal import JournalEntry
 from app.models.facts import UserFact
+from app.middleware.auth import require_auth, get_current_user_id
 import math
 
 logger = logging.getLogger(__name__)
@@ -36,9 +37,11 @@ def calculate_pagination(page: int, limit: int, total_count: int) -> dict:
 
 
 @bp.route('/entries', methods=['GET'])
+@require_auth
 async def get_entries():
-    """Get all journal entries with pagination."""
+    """Get all journal entries with pagination for the authenticated user."""
     try:
+        user_id = get_current_user_id()
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 20))
         search = request.args.get('search', '')
@@ -46,12 +49,12 @@ async def get_entries():
         async with get_db_session() as session:
             if search:
                 # Search with pagination
-                entries = await JournalEntry.search(session, search, page, limit)
-                total_count = await JournalEntry.count_search(session, search)
+                entries = await JournalEntry.search(session, user_id, search, page, limit)
+                total_count = await JournalEntry.count_search(session, user_id, search)
             else:
                 # Regular pagination
-                entries = await JournalEntry.get_all(session, page, limit)
-                total_count = await JournalEntry.count_all(session)
+                entries = await JournalEntry.get_all(session, user_id, page, limit)
+                total_count = await JournalEntry.count_all(session, user_id)
             
             # Calculate pagination metadata
             pagination = calculate_pagination(page, limit, total_count)
@@ -71,9 +74,11 @@ async def get_entries():
 
 
 @bp.route('/entries', methods=['POST'])
+@require_auth
 async def create_entry():
-    """Create a new journal entry."""
+    """Create a new journal entry for the authenticated user."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('content'):
@@ -83,7 +88,7 @@ async def create_entry():
         content = data.get('content')
         
         async with get_db_session() as session:
-            entry = await JournalEntry.create(session, title, content)
+            entry = await JournalEntry.create(session, user_id, title, content)
             await session.commit()
             
             return jsonify({
@@ -97,11 +102,14 @@ async def create_entry():
 
 
 @bp.route('/entries/<int:entry_id>', methods=['GET'])
+@require_auth
 async def get_entry(entry_id):
-    """Get a specific journal entry by ID."""
+    """Get a specific journal entry by ID for the authenticated user."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -120,16 +128,18 @@ async def get_entry(entry_id):
 
 
 @bp.route('/entries/<int:entry_id>', methods=['PUT'])
+@require_auth
 async def update_entry(entry_id):
-    """Update a journal entry."""
+    """Update a journal entry for the authenticated user."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data:
             return jsonify({"error": "No data provided"}), 400
         
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -156,11 +166,14 @@ async def update_entry(entry_id):
 
 
 @bp.route('/entries/<int:entry_id>', methods=['DELETE'])
+@require_auth
 async def delete_entry(entry_id):
-    """Delete a journal entry."""
+    """Delete a journal entry for the authenticated user."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -175,11 +188,14 @@ async def delete_entry(entry_id):
 
 
 @bp.route('/entries/<int:entry_id>/complete', methods=['POST'])
+@require_auth
 async def complete_entry(entry_id):
-    """Mark entry as complete and trigger AI processing."""
+    """Mark entry as complete and trigger AI processing for the authenticated user."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -198,7 +214,7 @@ async def complete_entry(entry_id):
             
             # Store facts in database
             if facts_data:
-                facts = await UserFact.create_bulk(session, facts_data, entry_id)
+                facts = await UserFact.create_bulk(session, facts_data, entry_id, user_id)
                 logger.info(f"Created {len(facts)} facts for entry {entry_id}")
             
             # Commit all changes
@@ -221,11 +237,14 @@ async def complete_entry(entry_id):
 
 
 @bp.route('/entries/<int:entry_id>/facts', methods=['GET'])
+@require_auth
 async def get_entry_facts(entry_id):
-    """Get all facts for a specific entry."""
+    """Get all facts for a specific entry belonging to the authenticated user."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -244,35 +263,44 @@ async def get_entry_facts(entry_id):
 
 
 @bp.route('/stats', methods=['GET'])
+@require_auth
 async def get_journal_stats():
-    """Get journal statistics."""
+    """Get journal statistics for the authenticated user."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session:
             # Get recent entries
-            recent_entries = await JournalEntry.get_recent_completed(session, 10)
+            recent_entries = await JournalEntry.get_recent_completed(session, user_id, 10)
             
             # Count total entries by status
             from sqlalchemy.future import select
             from sqlalchemy import func
             from app.models.journal import EntryStatus
             
-            total_result = await session.execute(select(func.count(JournalEntry.id)))
+            total_result = await session.execute(
+                select(func.count(JournalEntry.id))
+                .where(JournalEntry.user_id == user_id)
+            )
             total_entries = total_result.scalar()
             
             draft_result = await session.execute(
                 select(func.count(JournalEntry.id))
-                .where(JournalEntry.status == EntryStatus.DRAFT)
+                .where(JournalEntry.user_id == user_id, JournalEntry.status == EntryStatus.DRAFT)
             )
             draft_count = draft_result.scalar()
             
             complete_result = await session.execute(
                 select(func.count(JournalEntry.id))
-                .where(JournalEntry.status == EntryStatus.COMPLETE)
+                .where(JournalEntry.user_id == user_id, JournalEntry.status == EntryStatus.COMPLETE)
             )
             complete_count = complete_result.scalar()
             
             # Count total facts
-            fact_result = await session.execute(select(func.count(UserFact.id)))
+            fact_result = await session.execute(
+                select(func.count(UserFact.id))
+                .where(UserFact.user_id == user_id)
+            )
             total_facts = fact_result.scalar()
             
             return jsonify({

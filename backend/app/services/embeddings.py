@@ -89,31 +89,17 @@ class EmbeddingService:
         self, 
         query_text: str, 
         session, 
-        limit: int = 10
+        limit: int = 10,
+        user_id: Optional[int] = None
     ) -> List[tuple]:
         """
         Find facts similar to query text using vector similarity.
         
-        TODO: Implement proper pgvector similarity search:
-        
-        query_embedding = await self.generate_embedding(query_text)
-        
-        # Use pgvector for similarity search
-        result = await session.execute(
-            text('''
-                SELECT *, (embedding_vector <-> :query_embedding) as distance 
-                FROM user_facts 
-                WHERE embedding_vector IS NOT NULL
-                ORDER BY distance 
-                LIMIT :limit
-            '''),
-            {
-                'query_embedding': query_embedding,
-                'limit': limit
-            }
-        )
-        
-        return [(row, row.distance) for row in result]
+        Args:
+            query_text: Text to search for
+            session: Database session
+            limit: Maximum number of results
+            user_id: Optional user ID to filter results
         """
         try:
             query_embedding = await self.generate_embedding(query_text)
@@ -121,10 +107,21 @@ class EmbeddingService:
             # Import here to avoid circular imports
             from app.models.facts import UserFact
             
-            # For now, use the mock similarity search from the model
-            similar_facts = await UserFact.search_similar(
-                session, query_embedding, limit
-            )
+            # Use the model's similarity search with user filter
+            if user_id:
+                similar_facts = await UserFact.search_similar(
+                    session, user_id, query_embedding, limit
+                )
+            else:
+                # Fallback for backward compatibility - search all facts
+                from sqlalchemy.future import select
+                result = await session.execute(
+                    select(UserFact, (UserFact.embedding_vector.cosine_distance(query_embedding)).label('distance'))
+                    .where(UserFact.embedding_vector.is_not(None))
+                    .order_by(UserFact.embedding_vector.cosine_distance(query_embedding))
+                    .limit(limit)
+                )
+                similar_facts = [(fact, distance) for fact, distance in result.all()]
             
             return similar_facts
             

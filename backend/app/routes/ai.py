@@ -2,13 +2,13 @@
 AI processing API routes.
 """
 
-from quart import Blueprint, request, jsonify
+from quart import Blueprint, request, jsonify, g
 import logging
 from app.models.database import get_db_session
 from app.models.journal import EntryStatus, JournalEntry
 from app.models.facts import UserFact
 from app.services.service_manager import service_manager
-from app.models.journal import JournalEntry
+from app.middleware.auth import require_auth, get_current_user_id
 from datetime import datetime
  
 logger = logging.getLogger(__name__)
@@ -17,9 +17,11 @@ bp = Blueprint('ai', __name__)
 
 # TODO: remove from route and include process_entry as a service called when journal entry is set to completed
 @bp.route('/process-entry', methods=['POST'])
+@require_auth
 async def process_entry():
     """Process a journal entry to extract facts and events."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('entry_id'):
@@ -28,7 +30,7 @@ async def process_entry():
         entry_id = data['entry_id']
         
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -42,7 +44,7 @@ async def process_entry():
             # Store facts in database
             facts = []
             if facts_data:
-                facts = await UserFact.create_bulk(session, facts_data, entry_id)
+                facts = await UserFact.create_bulk(session, facts_data, entry_id, user_id)
             
             return jsonify({
                 "message": "Entry processed successfully",
@@ -59,9 +61,11 @@ async def process_entry():
 # service called when journal entry is set to completed, because it will
 # take a while to generate the review and it never has to be regenerated
 @bp.route('/review-entry', methods=['POST'])
+@require_auth
 async def review_entry():
     """Generate an AI review for a journal entry."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('entry_id'):
@@ -74,7 +78,7 @@ async def review_entry():
             return jsonify({"error": "Entry ID must be a valid integer"}), 400
         
         async with get_db_session() as session:
-            entry = await JournalEntry.get_by_id(session, entry_id)
+            entry = await JournalEntry.get_by_id(session, entry_id, user_id)
             
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
@@ -92,7 +96,7 @@ async def review_entry():
 
                 vector_search = service_manager.get_vector_search()
                 related_facts = await vector_search.search_similar_facts(
-                    session, embedding_vector, 5
+                    session, embedding_vector, 5, user_id=user_id
                 )  # (fact, similarity)
                 
                 # Generate review for each fact
@@ -115,13 +119,15 @@ async def review_entry():
 
 
 @bp.route('/topics', methods=['GET'])
+@require_auth
 async def get_topics():
     """Get recent topics for suggestions."""
     try:
+        user_id = get_current_user_id()
         limit = int(request.args.get('limit', 6))
         
         async with get_db_session() as session:
-            topics = await UserFact.get_recent_topics(session, limit)
+            topics = await UserFact.get_recent_topics(session, user_id, limit)
             
             return jsonify(topics)
             
@@ -131,9 +137,11 @@ async def get_topics():
 
 
 @bp.route('/suggest-prompt', methods=['POST'])
+@require_auth
 async def suggest_prompt():
     """Generate a writing prompt for a specific topic."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('topic'):
@@ -142,8 +150,8 @@ async def suggest_prompt():
         topic = data['topic']
         
         async with get_db_session() as session:
-            # Get related facts for context
-            related_facts = await UserFact.get_by_topic(session, topic, 10)
+            # Get related facts for context (user-scoped)
+            related_facts = await UserFact.get_by_topic(session, user_id, topic, 10)
             
             # Generate prompt using AI
             ai_processor = service_manager.get_ai_processor()
@@ -175,6 +183,7 @@ async def ai_health_check():
         return jsonify({"error": "Failed to check AI health"}), 500
 
 @bp.route('/get-reflection', methods=['POST'])
+@require_auth
 async def get_reflection():
     """
     Retrieve a reflection that answers a user query by surfacing the most
@@ -182,6 +191,7 @@ async def get_reflection():
     concise AI-written summary that includes direct quotations where possible.
     """
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
 
         # ── Validate input ────────────────────────────────────────────────────
@@ -207,7 +217,7 @@ async def get_reflection():
             # ── Step 1: find semantically similar facts ────────────────────
             vector_search = service_manager.get_vector_search()
             raw_similar = await vector_search.search_similar_facts(
-                session, query, limit * 4
+                session, query, limit * 4, user_id=user_id
             )  # (fact, similarity)
 
             # ── Step 2: filter by date range & de-duplicate by entry ───────
@@ -223,7 +233,7 @@ async def get_reflection():
                     continue
 
                 if fact.entry_id not in entries_by_id:
-                    entry = await JournalEntry.get_by_id(session, fact.entry_id)
+                    entry = await JournalEntry.get_by_id(session, fact.entry_id, user_id)
                     if entry:  # Defensive
                         entries_by_id[fact.entry_id] = entry
 
@@ -266,9 +276,11 @@ async def get_reflection():
         return jsonify({"error": "Failed to get reflection"}), 500
 
 @bp.route('/search-similar', methods=['POST'])
+@require_auth
 async def search_similar():
     """Search for facts similar to a query."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('query'):
@@ -281,7 +293,7 @@ async def search_similar():
         async with get_db_session() as session:
             vector_search = service_manager.get_vector_search()
             similar_facts = await vector_search.search_similar_facts(
-                session, query, limit, similarity_threshold
+                session, query, limit, similarity_threshold, user_id=user_id
             )
             
             results = []
@@ -302,15 +314,17 @@ async def search_similar():
 
 
 @bp.route('/topic-clusters', methods=['GET'])
+@require_auth
 async def get_topic_clusters():
     """Get clustered facts by topic similarity."""
     try:
+        user_id = get_current_user_id()
         topic = request.args.get('topic')
         n_clusters = int(request.args.get('n_clusters', 5))
         
         async with get_db_session() as session:
             vector_search = service_manager.get_vector_search()
-            clusters = await vector_search.get_fact_clusters(session, topic, n_clusters)
+            clusters = await vector_search.get_fact_clusters(session, topic, n_clusters, user_id=user_id)
             
             # Format clusters for response
             formatted_clusters = {}
@@ -333,20 +347,16 @@ async def get_topic_clusters():
 
 
 @bp.route('/suggest-topics', methods=['GET'])
+@require_auth
 async def suggest_topics():
     """Suggest new topics for exploration based on user's history."""
     try:
+        user_id = get_current_user_id()
         limit = int(request.args.get('limit', 5))
         
         async with get_db_session() as session:
-            # Get user's recent facts
-            from sqlalchemy.future import select
-            result = await session.execute(
-                select(UserFact)
-                .order_by(UserFact.timestamp.desc())
-                .limit(50)
-            )
-            recent_facts = result.scalars().all()
+            # Get user's recent facts (user-scoped)
+            recent_facts = await UserFact.get_recent(session, user_id, limit=50)
             
             # Generate topic suggestions
             ai_processor = service_manager.get_ai_processor()
@@ -363,22 +373,24 @@ async def suggest_topics():
 
 
 @bp.route('/analyze-patterns', methods=['GET'])
+@require_auth
 async def analyze_patterns():
     """Analyze patterns in user's journaling habits and topics."""
     try:
+        user_id = get_current_user_id()
         days = int(request.args.get('days', 30))
         
         async with get_db_session() as session:
-            from datetime import datetime, timedelta
+            from datetime import timedelta
             from sqlalchemy.future import select
             from sqlalchemy import func
             
-            # Get facts from the last N days
+            # Get facts from the last N days (user-scoped)
             cutoff_date = datetime.utcnow() - timedelta(days=days)
             
             result = await session.execute(
                 select(UserFact)
-                .where(UserFact.timestamp >= cutoff_date)
+                .where(UserFact.user_id == user_id, UserFact.timestamp >= cutoff_date)
                 .order_by(UserFact.timestamp.desc())
             )
             recent_facts = result.scalars().all()

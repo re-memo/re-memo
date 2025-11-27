@@ -2,7 +2,7 @@
 Vector search service using pgvector for similarity operations.
 """
 
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 import numpy as np
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
@@ -25,44 +25,23 @@ class VectorSearchService:
         session: AsyncSession,
         query_text: str,
         limit: int = 10,
-        similarity_threshold: float = 0.8
+        similarity_threshold: float = 0.8,
+        user_id: Optional[int] = None
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts similar to the query text using vector similarity.
         
-        TODO: Implement proper pgvector similarity search when database is set up:
-        
-        # Generate embedding for query
-        query_embedding = await self.embedding_service.generate_embedding(query_text)
-        
-        # Use pgvector cosine similarity operator
-        result = await session.execute(
-            text('''
-                SELECT *, 1 - (embedding_vector <=> :query_embedding) as similarity
-                FROM user_facts 
-                WHERE embedding_vector IS NOT NULL
-                AND 1 - (embedding_vector <=> :query_embedding) > :threshold
-                ORDER BY similarity DESC
-                LIMIT :limit
-            '''),
-            {
-                'query_embedding': query_embedding,
-                'threshold': similarity_threshold,
-                'limit': limit
-            }
-        )
-        
-        facts_with_similarity = []
-        for row in result:
-            fact = await UserFact.get_by_id(session, row.id)
-            facts_with_similarity.append((fact, row.similarity))
-        
-        return facts_with_similarity
+        Args:
+            session: Database session
+            query_text: Text to search for
+            limit: Maximum number of results
+            similarity_threshold: Minimum similarity score
+            user_id: Optional user ID to filter results
         """
         try:
             # For now, use the embedding service's mock implementation
             similar_facts = await self.embedding_service.find_similar_facts(
-                query_text, session, limit
+                query_text, session, limit * 2, user_id=user_id  # Get more to filter
             )
             
             # Filter by similarity threshold
@@ -71,8 +50,8 @@ class VectorSearchService:
                 if distance <= similarity_threshold
             ]
 
-            # Sort by distance (lower is more similar)            
-            return filtered_facts
+            # Sort by distance (lower is more similar) and limit
+            return filtered_facts[:limit]
             
         except Exception as e:
             logger.error(f"Error searching similar facts: {str(e)}")
@@ -83,14 +62,26 @@ class VectorSearchService:
         session: AsyncSession,
         query_text: str,
         topic: str,
-        limit: int = 10
+        limit: int = 10,
+        user_id: Optional[int] = None
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts that match both topic and semantic similarity.
         """
         try:
-            # First get facts by topic
-            topic_facts = await UserFact.get_by_topic(session, topic, limit * 2)
+            # First get facts by topic (user-scoped if user_id provided)
+            if user_id:
+                topic_facts = await UserFact.get_by_topic(session, user_id, topic, limit * 2)
+            else:
+                # Fallback for backward compatibility
+                from sqlalchemy.future import select
+                result = await session.execute(
+                    select(UserFact)
+                    .where(UserFact.topic.ilike(f"%{topic}%"))
+                    .order_by(UserFact.timestamp.desc())
+                    .limit(limit * 2)
+                )
+                topic_facts = result.scalars().all()
             
             if not topic_facts:
                 return []
@@ -120,15 +111,16 @@ class VectorSearchService:
         session: AsyncSession,
         entry_content: str,
         entry_id: int = None,
-        limit: int = 5
+        limit: int = 5,
+        user_id: Optional[int] = None
     ) -> List[UserFact]:
         """
         Find facts related to a journal entry content.
         """
         try:
-            # Search for similar facts
+            # Search for similar facts (user-scoped if user_id provided)
             similar_facts = await self.search_similar_facts(
-                session, entry_content, limit * 2
+                session, entry_content, limit * 2, user_id=user_id
             )
             
             # Filter out facts from the same entry if entry_id is provided
@@ -149,24 +141,34 @@ class VectorSearchService:
         self,
         session: AsyncSession,
         topic: str = None,
-        n_clusters: int = 5
+        n_clusters: int = 5,
+        user_id: Optional[int] = None
     ) -> Dict[int, List[UserFact]]:
         """
         Cluster facts by semantic similarity.
         """
         try:
             # Get facts to cluster
-            if topic:
-                facts = await UserFact.get_by_topic(session, topic, 100)
-            else:
-                # Get recent facts
+            if topic and user_id:
+                facts = await UserFact.get_by_topic(session, user_id, topic, 100)
+            elif topic:
+                # Fallback without user_id
                 from sqlalchemy.future import select
                 result = await session.execute(
                     select(UserFact)
-                    .where(UserFact.embedding_vector.isnot(None))
+                    .where(UserFact.topic.ilike(f"%{topic}%"))
                     .order_by(UserFact.timestamp.desc())
                     .limit(100)
                 )
+                facts = result.scalars().all()
+            else:
+                # Get recent facts
+                from sqlalchemy.future import select
+                query = select(UserFact).where(UserFact.embedding_vector.isnot(None))
+                if user_id:
+                    query = query.where(UserFact.user_id == user_id)
+                query = query.order_by(UserFact.timestamp.desc()).limit(100)
+                result = await session.execute(query)
                 facts = result.scalars().all()
             
             if not facts:
@@ -259,20 +261,25 @@ class VectorSearchService:
             logger.error(f"Error recommending topics: {str(e)}")
             return []
     
-    async def get_search_stats(self, session: AsyncSession) -> Dict[str, Any]:
+    async def get_search_stats(self, session: AsyncSession, user_id: Optional[int] = None) -> Dict[str, Any]:
         """Get statistics about vector search usage."""
         try:
             # Count facts with embeddings
             from sqlalchemy.future import select
             from sqlalchemy import func
             
-            total_facts = await session.execute(select(func.count(UserFact.id)))
+            # Build query with optional user filter
+            total_query = select(func.count(UserFact.id))
+            embedded_query = select(func.count(UserFact.id)).where(UserFact.embedding_vector.isnot(None))
+            
+            if user_id:
+                total_query = total_query.where(UserFact.user_id == user_id)
+                embedded_query = embedded_query.where(UserFact.user_id == user_id)
+            
+            total_facts = await session.execute(total_query)
             total_count = total_facts.scalar()
             
-            facts_with_embeddings = await session.execute(
-                select(func.count(UserFact.id))
-                .where(UserFact.embedding_vector.isnot(None))
-            )
+            facts_with_embeddings = await session.execute(embedded_query)
             embedded_count = facts_with_embeddings.scalar()
             
             return {

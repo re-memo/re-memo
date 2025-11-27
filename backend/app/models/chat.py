@@ -18,17 +18,20 @@ class ChatSession(Base):
     __tablename__ = "chat_sessions"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     title = Column(String(200), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    # Relationship with messages
+    # Relationships
+    user = relationship("User", backref="chat_sessions")
     messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
     
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization."""
         return {
             "id": self.id,
+            "user_id": self.user_id,
             "title": self.title,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
@@ -36,25 +39,31 @@ class ChatSession(Base):
         }
     
     @classmethod
-    async def create(cls, session: AsyncSession, title: str = None) -> "ChatSession":
+    async def create(cls, session: AsyncSession, user_id: int, title: str = None) -> "ChatSession":
         """Create a new chat session."""
-        chat_session = cls(title=title)
+        chat_session = cls(user_id=user_id, title=title)
         session.add(chat_session)
         await session.flush()
         await session.refresh(chat_session)
         return chat_session
     
     @classmethod
-    async def get_by_id(cls, session: AsyncSession, session_id: str) -> Optional["ChatSession"]:
-        """Get a chat session by ID."""
-        result = await session.execute(select(cls).where(cls.id == session_id))
+    async def get_by_id(cls, session: AsyncSession, session_id: str, user_id: int = None) -> Optional["ChatSession"]:
+        """Get a chat session by ID, optionally filtered by user."""
+        if user_id:
+            result = await session.execute(
+                select(cls).where(cls.id == session_id, cls.user_id == user_id)
+            )
+        else:
+            result = await session.execute(select(cls).where(cls.id == session_id))
         return result.scalars().first()
     
     @classmethod
-    async def get_all(cls, session: AsyncSession, limit: int = 20) -> List["ChatSession"]:
-        """Get all chat sessions."""
+    async def get_all(cls, session: AsyncSession, user_id: int, limit: int = 20) -> List["ChatSession"]:
+        """Get all chat sessions for a user."""
         result = await session.execute(
             select(cls)
+            .where(cls.user_id == user_id)
             .order_by(cls.updated_at.desc())
             .limit(limit)
         )
