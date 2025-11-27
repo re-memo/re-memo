@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     SECRET_KEY: str = "your-secret-key-change-this"
     
+    # JWT Configuration
+    JWT_SECRET_KEY: str = "jwt-secret-key-change-this-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRATION_HOURS: int = 24
+    
     # AI Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
     EMBEDDING_DIMENSION: int = 384  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)

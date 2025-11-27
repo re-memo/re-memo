@@ -2,7 +2,7 @@
 Chat interface API routes.
 """
 
-from quart import Blueprint, request, jsonify
+from quart import Blueprint, request, jsonify, g
 from datetime import datetime
 from typing import List, Dict
 from app.models.database import get_db_session
@@ -10,6 +10,7 @@ from app.models.chat import ChatSession, ChatMessage
 from app.models.facts import UserFact
 from app.services.service_manager import service_manager
 from app.config.settings import settings
+from app.middleware.auth import require_auth, get_current_user_id
 import logging
 
 logger = logging.getLogger(__name__)
@@ -18,9 +19,11 @@ bp = Blueprint('chat', __name__)
 
 
 @bp.route('/message', methods=['POST'])
+@require_auth
 async def send_message():
     """Send a chat message and get AI response."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         
         if not data or not data.get('message'):
@@ -32,12 +35,16 @@ async def send_message():
         async with get_db_session() as session_db:
             # Get or create chat session
             if session_id:
-                chat_session = await ChatSession.get_by_id(session_db, session_id)
+                chat_session = await ChatSession.get_by_id(session_db, session_id, user_id)
                 if not chat_session:
                     return jsonify({"error": "Chat session not found"}), 404
             else:
                 # Create new session
-                chat_session = await ChatSession.create(session_db, title=f"Chat started at {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}")
+                chat_session = await ChatSession.create(
+                    session_db, 
+                    user_id, 
+                    title=f"Chat started at {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}"
+                )
                 session_id = chat_session.id
             
             # Store user message
@@ -51,12 +58,13 @@ async def send_message():
             # Get recent messages for context
             recent_messages = await ChatMessage.get_recent_messages(session_db, session_id, limit=10)
             
-            # Get relevant facts for context
+            # Get relevant facts for context (user-scoped)
             vector_search = service_manager.get_vector_search()
             relevant_facts = await vector_search.find_related_facts_for_entry(
                 session_db, 
                 message, 
-                limit=5
+                limit=5,
+                user_id=user_id
             )
             
             # Generate AI response
@@ -82,7 +90,7 @@ async def send_message():
                 session_id,
                 "assistant",
                 ai_response,
-                model_used=settings.DEFAULT_MODEL,  # Use from settings
+                model_used=settings.DEFAULT_MODEL,
                 context_facts_count=len(relevant_facts)
             )
             
@@ -105,9 +113,11 @@ async def send_message():
 
 
 @bp.route('/history', methods=['GET'])
+@require_auth
 async def get_chat_history():
     """Get chat history for a session."""
     try:
+        user_id = get_current_user_id()
         session_id = request.args.get('session_id')
         limit = int(request.args.get('limit', 50))
         
@@ -115,7 +125,7 @@ async def get_chat_history():
             return jsonify({"error": "Session ID is required"}), 400
         
         async with get_db_session() as session_db:
-            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            chat_session = await ChatSession.get_by_id(session_db, session_id, user_id)
             if not chat_session:
                 return jsonify({"error": "Chat session not found"}), 404
             
@@ -133,13 +143,15 @@ async def get_chat_history():
 
 
 @bp.route('/sessions', methods=['GET'])
+@require_auth
 async def get_chat_sessions():
-    """Get all chat sessions."""
+    """Get all chat sessions for the authenticated user."""
     try:
+        user_id = get_current_user_id()
         limit = int(request.args.get('limit', 20))
         
         async with get_db_session() as session_db:
-            sessions = await ChatSession.get_all(session_db, limit)
+            sessions = await ChatSession.get_all(session_db, user_id, limit)
             
             sessions_info = []
             for session in sessions:
@@ -163,11 +175,14 @@ async def get_chat_sessions():
 
 
 @bp.route('/sessions/<session_id>', methods=['DELETE'])
+@require_auth
 async def delete_chat_session(session_id):
     """Delete a chat session."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session_db:
-            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            chat_session = await ChatSession.get_by_id(session_db, session_id, user_id)
             if not chat_session:
                 return jsonify({"error": "Chat session not found"}), 404
             
@@ -184,14 +199,16 @@ async def delete_chat_session(session_id):
 
 
 @bp.route('/sessions', methods=['POST'])
+@require_auth
 async def create_chat_session():
     """Create a new chat session."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         title = data.get('title') if data else None
         
         async with get_db_session() as session_db:
-            chat_session = await ChatSession.create(session_db, title)
+            chat_session = await ChatSession.create(session_db, user_id, title)
             
             return jsonify({
                 "session": chat_session.to_dict(),
@@ -204,15 +221,17 @@ async def create_chat_session():
 
 
 @bp.route('/suggest-questions', methods=['POST'])
+@require_auth
 async def suggest_questions():
     """Suggest relevant questions based on user's journal content."""
     try:
+        user_id = get_current_user_id()
         data = await request.get_json()
         context = data.get('context', '') if data else ''
         
         async with get_db_session() as session_db:
-            # Get recent facts for context
-            recent_facts = await UserFact.get_recent(session_db, limit=10)
+            # Get recent facts for context (user-scoped)
+            recent_facts = await UserFact.get_recent(session_db, user_id, limit=10)
             
             ai_processor = service_manager.get_ai_processor()
             questions = await ai_processor.suggest_questions_from_context(context, recent_facts)
@@ -228,12 +247,15 @@ async def suggest_questions():
 
 
 @bp.route('/quick-insights', methods=['GET'])
+@require_auth
 async def get_quick_insights():
     """Get quick insights from recent journal entries."""
     try:
+        user_id = get_current_user_id()
+        
         async with get_db_session() as session_db:
-            # Get recent facts
-            recent_facts = await UserFact.get_recent(session_db, limit=20)
+            # Get recent facts (user-scoped)
+            recent_facts = await UserFact.get_recent(session_db, user_id, limit=20)
             
             ai_processor = service_manager.get_ai_processor()
             insights = await ai_processor.generate_quick_insights(recent_facts)
@@ -249,9 +271,11 @@ async def get_quick_insights():
 
 
 @bp.route('/export-chat', methods=['GET'])
+@require_auth
 async def export_chat():
     """Export chat history for a session."""
     try:
+        user_id = get_current_user_id()
         session_id = request.args.get('session_id')
         format_type = request.args.get('format', 'json')  # json, txt, md
         
@@ -259,7 +283,7 @@ async def export_chat():
             return jsonify({"error": "Session ID is required"}), 400
         
         async with get_db_session() as session_db:
-            chat_session = await ChatSession.get_by_id(session_db, session_id)
+            chat_session = await ChatSession.get_by_id(session_db, session_id, user_id)
             if not chat_session:
                 return jsonify({"error": "Chat session not found"}), 404
             
@@ -273,7 +297,6 @@ async def export_chat():
                 })
             
             elif format_type == 'txt':
-                # TODO: Implement text export
                 content = f"Chat Session: {chat_session.title or 'Untitled'}\n"
                 content += f"Exported: {datetime.utcnow().isoformat()}\n\n"
                 
