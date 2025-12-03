@@ -323,7 +323,7 @@ async def get_topic_clusters():
         
         async with get_db_session() as session:
             vector_search = service_manager.get_vector_search()
-            clusters = await vector_search.get_fact_clusters(session, topic, n_clusters, user_id=user_id)
+            clusters = await vector_search.get_fact_clusters(session, topic=topic, n_clusters=n_clusters, user_id=user_id)
             
             # Format clusters for response
             formatted_clusters = {}

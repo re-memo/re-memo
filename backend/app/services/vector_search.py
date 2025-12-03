@@ -135,7 +135,7 @@ class VectorSearchService:
         try:
             # Search for similar facts (user-scoped)
             similar_facts = await self.search_similar_facts(
-                session, entry_content, limit * 2, user_id=user_id
+                session, entry_content, limit=limit * 2, user_id=user_id
             )
             
             # Filter out facts from the same entry if entry_id is provided
