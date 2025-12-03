@@ -115,7 +115,7 @@ async def get_entry(entry_id):
                 return jsonify({"error": "Entry not found"}), 404
             
             # Get associated facts
-            facts = await UserFact.get_by_entry_id(session, entry_id)
+            facts = await UserFact.get_by_entry_id(session, entry_id, user_id)
             
             entry_data = entry.to_dict()
             entry_data['facts'] = [fact.to_dict() for fact in facts]
@@ -222,7 +222,7 @@ async def complete_entry(entry_id):
             
             # Get updated entry with facts
             updated_entry = entry.to_dict()
-            facts = await UserFact.get_by_entry_id(session, entry_id)
+            facts = await UserFact.get_by_entry_id(session, entry_id, user_id)
             updated_entry['facts'] = [fact.to_dict() for fact in facts]
             
             return jsonify({
@@ -249,7 +249,7 @@ async def get_entry_facts(entry_id):
             if not entry:
                 return jsonify({"error": "Entry not found"}), 404
             
-            facts = await UserFact.get_by_entry_id(session, entry_id)
+            facts = await UserFact.get_by_entry_id(session, entry_id, user_id)
             
             return jsonify({
                 "entry_id": entry_id,

@@ -85,14 +85,11 @@ class JournalEntry(Base):
         return result.scalar()
     
     @classmethod
-    async def get_by_id(cls, session: AsyncSession, entry_id: int, user_id: int = None) -> Optional["JournalEntry"]:
-        """Get a journal entry by ID, optionally filtered by user."""
-        if user_id:
-            result = await session.execute(
-                select(cls).where(cls.id == entry_id, cls.user_id == user_id)
-            )
-        else:
-            result = await session.execute(select(cls).where(cls.id == entry_id))
+    async def get_by_id(cls, session: AsyncSession, entry_id: int, user_id: int) -> Optional["JournalEntry"]:
+        """Get a journal entry by ID for a specific user."""
+        result = await session.execute(
+            select(cls).where(cls.id == entry_id, cls.user_id == user_id)
+        )
         return result.scalars().first()
     
     @classmethod
