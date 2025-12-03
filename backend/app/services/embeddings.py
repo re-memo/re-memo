@@ -90,7 +90,8 @@ class EmbeddingService:
         query_text: str, 
         session, 
         limit: int = 10,
-        user_id: int = None
+        *,
+        user_id: int
     ) -> List[tuple]:
         """
         Find facts similar to query text using vector similarity.
@@ -105,9 +106,6 @@ class EmbeddingService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for find_similar_facts")
-            
             query_embedding = await self.generate_embedding(query_text)
             
             # Import here to avoid circular imports
