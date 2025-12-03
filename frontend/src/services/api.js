@@ -78,7 +78,7 @@ const api = {
   // Authentication operations
   auth: {
     /**
-     * Register a new user
+     * Register a new user (admin only)
      */
     register: async (username, password) => {
       const response = await apiClient.post('/auth/register', {
@@ -104,6 +104,32 @@ const api = {
      */
     me: async () => {
       const response = await apiClient.get('/auth/me');
+      return response.data;
+    },
+
+    /**
+     * List all users (admin only)
+     */
+    listUsers: async () => {
+      const response = await apiClient.get('/auth/users');
+      return response.data;
+    },
+
+    /**
+     * Delete a user (admin only)
+     */
+    deleteUser: async (userId) => {
+      const response = await apiClient.delete(`/auth/users/${userId}`);
+      return response.data;
+    },
+
+    /**
+     * Reset a user's password (admin only)
+     */
+    resetPassword: async (userId, newPassword) => {
+      const response = await apiClient.post(`/auth/users/${userId}/reset-password`, {
+        password: newPassword
+      });
       return response.data;
     },
 

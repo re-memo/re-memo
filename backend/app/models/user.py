@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.database import Base
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 import bcrypt
 
 
@@ -63,6 +63,12 @@ class User(Base):
         """Get a user by username."""
         result = await session.execute(select(cls).where(cls.username == username))
         return result.scalars().first()
+    
+    @classmethod
+    async def get_all(cls, session: AsyncSession) -> List["User"]:
+        """Get all users."""
+        result = await session.execute(select(cls).order_by(cls.id))
+        return result.scalars().all()
     
     @classmethod
     async def authenticate(cls, session: AsyncSession, username: str, password: str) -> Optional["User"]:

@@ -90,7 +90,7 @@ class EmbeddingService:
         query_text: str, 
         session, 
         limit: int = 10,
-        user_id: Optional[int] = None
+        user_id: int = None
     ) -> List[tuple]:
         """
         Find facts similar to query text using vector similarity.
@@ -99,18 +99,19 @@ class EmbeddingService:
             query_text: Text to search for
             session: Database session
             limit: Maximum number of results
-            user_id: User ID to filter results (required for data isolation)
+            user_id: User ID to filter results (REQUIRED for data isolation)
+        
+        Raises:
+            ValueError: If user_id is not provided
         """
         try:
+            if user_id is None:
+                raise ValueError("user_id is required for find_similar_facts")
+            
             query_embedding = await self.generate_embedding(query_text)
             
             # Import here to avoid circular imports
             from app.models.facts import UserFact
-            
-            # Always require user_id for data isolation
-            if user_id is None:
-                logger.warning("find_similar_facts called without user_id - returning empty results for security")
-                return []
             
             # Use the model's similarity search with user filter
             similar_facts = await UserFact.search_similar(
