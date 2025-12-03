@@ -26,7 +26,8 @@ class VectorSearchService:
         query_text: str,
         limit: int = 10,
         similarity_threshold: float = 0.8,
-        user_id: int = None
+        *,
+        user_id: int
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts similar to the query text using vector similarity.
@@ -42,9 +43,6 @@ class VectorSearchService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for search_similar_facts")
-            
             # For now, use the embedding service's mock implementation
             similar_facts = await self.embedding_service.find_similar_facts(
                 query_text, session, limit * 2, user_id=user_id  # Get more to filter
@@ -69,7 +67,8 @@ class VectorSearchService:
         query_text: str,
         topic: str,
         limit: int = 10,
-        user_id: int = None
+        *,
+        user_id: int
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts that match both topic and semantic similarity.
@@ -85,9 +84,6 @@ class VectorSearchService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for search_by_topic_and_similarity")
-            
             # Get facts by topic (user-scoped)
             topic_facts = await UserFact.get_by_topic(session, user_id, topic, limit * 2)
             
@@ -120,7 +116,8 @@ class VectorSearchService:
         entry_content: str,
         entry_id: int = None,
         limit: int = 5,
-        user_id: int = None
+        *,
+        user_id: int
     ) -> List[UserFact]:
         """
         Find facts related to a journal entry content.
@@ -136,9 +133,6 @@ class VectorSearchService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for find_related_facts_for_entry")
-            
             # Search for similar facts (user-scoped)
             similar_facts = await self.search_similar_facts(
                 session, entry_content, limit * 2, user_id=user_id
@@ -163,7 +157,8 @@ class VectorSearchService:
         session: AsyncSession,
         topic: str = None,
         n_clusters: int = 5,
-        user_id: int = None
+        *,
+        user_id: int
     ) -> Dict[int, List[UserFact]]:
         """
         Cluster facts by semantic similarity.
@@ -178,9 +173,6 @@ class VectorSearchService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for get_fact_clusters")
-            
             # Get facts to cluster (user-scoped)
             if topic:
                 facts = await UserFact.get_by_topic(session, user_id, topic, 100)
@@ -286,7 +278,7 @@ class VectorSearchService:
             logger.error(f"Error recommending topics: {str(e)}")
             return []
     
-    async def get_search_stats(self, session: AsyncSession, user_id: int = None) -> Dict[str, Any]:
+    async def get_search_stats(self, session: AsyncSession, *, user_id: int) -> Dict[str, Any]:
         """
         Get statistics about vector search usage.
         
@@ -298,9 +290,6 @@ class VectorSearchService:
             ValueError: If user_id is not provided
         """
         try:
-            if user_id is None:
-                raise ValueError("user_id is required for get_search_stats")
-            
             # Count facts with embeddings
             from sqlalchemy.future import select
             from sqlalchemy import func
