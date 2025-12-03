@@ -87,7 +87,7 @@ async def review_entry():
                 return jsonify({"error": "Entry must be completed to generate a review"}), 400
             
             # Retrieve all facts related to the entry
-            facts = await UserFact.get_by_entry_id(session, entry_id)
+            facts = await UserFact.get_by_entry_id(session, entry_id, user_id)
 
             # Get related facts per fact (excluding self)
             fact_reviews = []

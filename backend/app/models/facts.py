@@ -141,13 +141,26 @@ class UserFact(Base):
         return [(fact, distance) for fact, distance in result.all()]
     
     @classmethod
-    async def get_by_entry_id(cls, session: AsyncSession, entry_id: int) -> List["UserFact"]:
-        """Get all facts for a specific journal entry."""
-        result = await session.execute(
-            select(cls)
-            .where(cls.entry_id == entry_id)
-            .order_by(cls.timestamp.desc())
-        )
+    async def get_by_entry_id(cls, session: AsyncSession, entry_id: int, user_id: int = None) -> List["UserFact"]:
+        """
+        Get all facts for a specific journal entry.
+        
+        Args:
+            session: Database session
+            entry_id: Journal entry ID
+            user_id: Optional user ID for additional security check
+        
+        Note: entry_id should already be verified to belong to the user before calling this method.
+        The user_id parameter is optional but recommended for defense in depth.
+        """
+        query = select(cls).where(cls.entry_id == entry_id)
+        
+        # Add user_id filter if provided for additional security
+        if user_id is not None:
+            query = query.where(cls.user_id == user_id)
+        
+        query = query.order_by(cls.timestamp.desc())
+        result = await session.execute(query)
         return result.scalars().all()
     
     @classmethod
