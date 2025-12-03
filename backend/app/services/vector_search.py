@@ -26,7 +26,7 @@ class VectorSearchService:
         query_text: str,
         limit: int = 10,
         similarity_threshold: float = 0.8,
-        user_id: Optional[int] = None
+        user_id: int = None
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts similar to the query text using vector similarity.
@@ -36,9 +36,15 @@ class VectorSearchService:
             query_text: Text to search for
             limit: Maximum number of results
             similarity_threshold: Minimum similarity score
-            user_id: Optional user ID to filter results
+            user_id: User ID to filter results (REQUIRED)
+        
+        Raises:
+            ValueError: If user_id is not provided
         """
         try:
+            if user_id is None:
+                raise ValueError("user_id is required for search_similar_facts")
+            
             # For now, use the embedding service's mock implementation
             similar_facts = await self.embedding_service.find_similar_facts(
                 query_text, session, limit * 2, user_id=user_id  # Get more to filter
@@ -63,7 +69,7 @@ class VectorSearchService:
         query_text: str,
         topic: str,
         limit: int = 10,
-        user_id: Optional[int] = None
+        user_id: int = None
     ) -> List[Tuple[UserFact, float]]:
         """
         Search for facts that match both topic and semantic similarity.
@@ -73,13 +79,14 @@ class VectorSearchService:
             query_text: Text to search for
             topic: Topic to filter by
             limit: Maximum number of results
-            user_id: User ID to filter results (required for data isolation)
+            user_id: User ID to filter results (REQUIRED)
+        
+        Raises:
+            ValueError: If user_id is not provided
         """
         try:
-            # Always require user_id for data isolation
             if user_id is None:
-                logger.warning("search_by_topic_and_similarity called without user_id - returning empty results for security")
-                return []
+                raise ValueError("user_id is required for search_by_topic_and_similarity")
             
             # Get facts by topic (user-scoped)
             topic_facts = await UserFact.get_by_topic(session, user_id, topic, limit * 2)
@@ -113,13 +120,26 @@ class VectorSearchService:
         entry_content: str,
         entry_id: int = None,
         limit: int = 5,
-        user_id: Optional[int] = None
+        user_id: int = None
     ) -> List[UserFact]:
         """
         Find facts related to a journal entry content.
+        
+        Args:
+            session: Database session
+            entry_content: Content to find related facts for
+            entry_id: Optional entry ID to exclude from results
+            limit: Maximum number of results
+            user_id: User ID to filter results (REQUIRED)
+        
+        Raises:
+            ValueError: If user_id is not provided
         """
         try:
-            # Search for similar facts (user-scoped if user_id provided)
+            if user_id is None:
+                raise ValueError("user_id is required for find_related_facts_for_entry")
+            
+            # Search for similar facts (user-scoped)
             similar_facts = await self.search_similar_facts(
                 session, entry_content, limit * 2, user_id=user_id
             )
@@ -143,7 +163,7 @@ class VectorSearchService:
         session: AsyncSession,
         topic: str = None,
         n_clusters: int = 5,
-        user_id: Optional[int] = None
+        user_id: int = None
     ) -> Dict[int, List[UserFact]]:
         """
         Cluster facts by semantic similarity.
@@ -152,13 +172,14 @@ class VectorSearchService:
             session: Database session
             topic: Optional topic filter
             n_clusters: Number of clusters to create
-            user_id: User ID to filter results (required for data isolation)
+            user_id: User ID to filter results (REQUIRED)
+        
+        Raises:
+            ValueError: If user_id is not provided
         """
         try:
-            # Always require user_id for data isolation
             if user_id is None:
-                logger.warning("get_fact_clusters called without user_id - returning empty results for security")
-                return {}
+                raise ValueError("user_id is required for get_fact_clusters")
             
             # Get facts to cluster (user-scoped)
             if topic:
@@ -265,20 +286,31 @@ class VectorSearchService:
             logger.error(f"Error recommending topics: {str(e)}")
             return []
     
-    async def get_search_stats(self, session: AsyncSession, user_id: Optional[int] = None) -> Dict[str, Any]:
-        """Get statistics about vector search usage."""
+    async def get_search_stats(self, session: AsyncSession, user_id: int = None) -> Dict[str, Any]:
+        """
+        Get statistics about vector search usage.
+        
+        Args:
+            session: Database session
+            user_id: User ID to filter results (REQUIRED)
+        
+        Raises:
+            ValueError: If user_id is not provided
+        """
         try:
+            if user_id is None:
+                raise ValueError("user_id is required for get_search_stats")
+            
             # Count facts with embeddings
             from sqlalchemy.future import select
             from sqlalchemy import func
             
-            # Build query with optional user filter
-            total_query = select(func.count(UserFact.id))
-            embedded_query = select(func.count(UserFact.id)).where(UserFact.embedding_vector.isnot(None))
-            
-            if user_id:
-                total_query = total_query.where(UserFact.user_id == user_id)
-                embedded_query = embedded_query.where(UserFact.user_id == user_id)
+            # Build query with user filter
+            total_query = select(func.count(UserFact.id)).where(UserFact.user_id == user_id)
+            embedded_query = select(func.count(UserFact.id)).where(
+                UserFact.user_id == user_id,
+                UserFact.embedding_vector.isnot(None)
+            )
             
             total_facts = await session.execute(total_query)
             total_count = total_facts.scalar()

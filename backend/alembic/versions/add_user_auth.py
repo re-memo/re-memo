@@ -35,26 +35,26 @@ def upgrade() -> None:
     op.create_index(op.f('ix_users_username'), 'users', ['username'], unique=True)
 
     # Generate a secure random password for migration purposes
-    # This default user is only created if there is existing data to migrate
+    # This admin user (ID 0) is only created if there is existing data to migrate
     random_password = secrets.token_urlsafe(16)
     password_hash = bcrypt.hashpw(random_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
     
-    # Create a default user for existing data (migration purposes only)
+    # Create admin user (ID 0) for existing data (migration purposes only)
     # Print the password to logs so the admin can use it to migrate, then should change it
-    print(f"[MIGRATION] Creating default_user with temporary password: {random_password}")
+    print(f"[MIGRATION] Creating admin user (ID 0) with temporary password: {random_password}")
     print("[MIGRATION] Please change this password after migration!")
     
     op.execute(f"""
         INSERT INTO users (id, username, password_hash, created_at, updated_at)
-        VALUES (1, 'default_user', '{password_hash}', NOW(), NOW())
+        VALUES (0, 'admin', '{password_hash}', NOW(), NOW())
         ON CONFLICT DO NOTHING;
     """)
 
     # Add user_id column to journal_entries
     op.add_column('journal_entries', sa.Column('user_id', sa.Integer(), nullable=True))
     
-    # Set default user_id for existing entries
-    op.execute("UPDATE journal_entries SET user_id = 1 WHERE user_id IS NULL")
+    # Set default user_id for existing entries to admin (ID 0)
+    op.execute("UPDATE journal_entries SET user_id = 0 WHERE user_id IS NULL")
     
     # Now make user_id NOT NULL and add foreign key
     op.alter_column('journal_entries', 'user_id', nullable=False)
@@ -64,8 +64,8 @@ def upgrade() -> None:
     # Add user_id column to user_facts
     op.add_column('user_facts', sa.Column('user_id', sa.Integer(), nullable=True))
     
-    # Set default user_id for existing facts
-    op.execute("UPDATE user_facts SET user_id = 1 WHERE user_id IS NULL")
+    # Set default user_id for existing facts to admin (ID 0)
+    op.execute("UPDATE user_facts SET user_id = 0 WHERE user_id IS NULL")
     
     # Now make user_id NOT NULL and add foreign key
     op.alter_column('user_facts', 'user_id', nullable=False)
@@ -75,8 +75,8 @@ def upgrade() -> None:
     # Add user_id column to chat_sessions
     op.add_column('chat_sessions', sa.Column('user_id', sa.Integer(), nullable=True))
     
-    # Set default user_id for existing sessions
-    op.execute("UPDATE chat_sessions SET user_id = 1 WHERE user_id IS NULL")
+    # Set default user_id for existing sessions to admin (ID 0)
+    op.execute("UPDATE chat_sessions SET user_id = 0 WHERE user_id IS NULL")
     
     # Now make user_id NOT NULL and add foreign key
     op.alter_column('chat_sessions', 'user_id', nullable=False)

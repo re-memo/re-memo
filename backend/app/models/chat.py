@@ -48,14 +48,11 @@ class ChatSession(Base):
         return chat_session
     
     @classmethod
-    async def get_by_id(cls, session: AsyncSession, session_id: str, user_id: int = None) -> Optional["ChatSession"]:
-        """Get a chat session by ID, optionally filtered by user."""
-        if user_id:
-            result = await session.execute(
-                select(cls).where(cls.id == session_id, cls.user_id == user_id)
-            )
-        else:
-            result = await session.execute(select(cls).where(cls.id == session_id))
+    async def get_by_id(cls, session: AsyncSession, session_id: str, user_id: int) -> Optional["ChatSession"]:
+        """Get a chat session by ID for a specific user."""
+        result = await session.execute(
+            select(cls).where(cls.id == session_id, cls.user_id == user_id)
+        )
         return result.scalars().first()
     
     @classmethod
