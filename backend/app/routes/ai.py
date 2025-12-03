@@ -92,11 +92,10 @@ async def review_entry():
             # Get related facts per fact (excluding self)
             fact_reviews = []
             for fact in facts:
-                embedding_vector = fact.embedding_vector
-
+                # Use the fact content as query text to find similar facts
                 vector_search = service_manager.get_vector_search()
                 related_facts = await vector_search.search_similar_facts(
-                    session, embedding_vector, 5, user_id=user_id
+                    session, fact.content, limit=5, user_id=user_id
                 )  # (fact, similarity)
                 
                 # Generate review for each fact
@@ -217,7 +216,7 @@ async def get_reflection():
             # ── Step 1: find semantically similar facts ────────────────────
             vector_search = service_manager.get_vector_search()
             raw_similar = await vector_search.search_similar_facts(
-                session, query, limit * 4, user_id=user_id
+                session, query, limit=limit * 4, user_id=user_id
             )  # (fact, similarity)
 
             # ── Step 2: filter by date range & de-duplicate by entry ───────
@@ -293,7 +292,7 @@ async def search_similar():
         async with get_db_session() as session:
             vector_search = service_manager.get_vector_search()
             similar_facts = await vector_search.search_similar_facts(
-                session, query, limit, similarity_threshold, user_id=user_id
+                session, query, limit=limit, similarity_threshold=similarity_threshold, user_id=user_id
             )
             
             results = []
