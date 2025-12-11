@@ -100,7 +100,7 @@ async def review_entry():
                 
                 # Generate review for each fact
                 ai_processor = service_manager.get_ai_processor()
-                review_text = await ai_processor.generate_fact_review(fact, related_facts)
+                review_text = await ai_processor.generate_fact_review(fact, [rf[0] for rf in related_facts])
 
                 fact_reviews.append({
                     "original_snippet": fact.original_snippet,
@@ -113,7 +113,7 @@ async def review_entry():
             })
 
     except Exception as e:
-        logger.error(f"Error reviewing entry: {str(e)}")
+        logger.error(f"Error reviewing entry: {str(e)}", exc_info=True)
         return jsonify({"error": "Failed to generate review"}), 500
 
 

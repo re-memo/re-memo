@@ -22,8 +22,8 @@ def run_alembic_command(cmd):
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
         
         if result.returncode != 0:
-            logger.error(f"❌ Alembic command failed: {result.stderr}")
-            raise Exception(f"Alembic command failed: {result.stderr}")
+            logger.error(f"❌ Alembic command failed: {result.stdout} {result.stderr}")
+            raise Exception(f"Alembic command failed: {result.stdout} {result.stderr}")
         
         logger.info(result.stdout)
         return result.stdout
