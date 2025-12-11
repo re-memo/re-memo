@@ -9,7 +9,7 @@ bcrypt
 # Database
 sqlalchemy
 asyncpg
-psycopg2
+psycopg2-binary
 pgvector
 alembic
 

@@ -11,6 +11,7 @@ from app.models.database import init_db
 from app.routes import journal, ai, chat, auth
 from app.services.service_manager import service_manager
 
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
