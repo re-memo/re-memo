@@ -25,6 +25,8 @@
 
 ### Core Features
 
+- [x] **User Authentication** - JWT-based authentication with admin-controlled user management
+- [x] **Data Isolation** - Each user's data is strictly separated and secured
 - [x] **Markdown Journal Editor** - Write with live preview, just like Obsidian
 - [x] **AI-Powered Processing** - Automatically extract events, facts, and insights from entries
 - [x] **Smart Topic Suggestions** - Get personalized writing prompts based on your history
@@ -60,15 +62,16 @@
 ### Tech Stack
 
 - **Frontend**: React 18 + Vite + Tailwind CSS
-- **Backend**: Python Quart (async Flask)
+- **Backend**: Python Quart (async Flask) with JWT authentication
 - **Database**: PostgreSQL with pgvector for embeddings
 - **AI/ML**:
   - LLMs: Ollama (local) or OpenAI-compatible APIs
   - Embeddings: HuggingFace sentence-transformers
 - **Deployment**: Docker + Docker Compose
+- **Security**: JWT tokens, bcrypt password hashing, user data isolation
 
 > [!NOTE]
-> The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries.
+> The architecture supports both local-first deployment and cloud-hybrid setups. pgvector enables efficient similarity search across journal entries. All user data is strictly isolated with enforced access controls.
 
 ## 💡 How It Works
 
@@ -102,8 +105,16 @@ For a quick start:
 ```bash
 git clone https://github.com/your-username/re-memo.git
 cd re-memo
+cp .env.example .env
+# Edit .env to set JWT_SECRET_KEY and other configuration
 # Follow the instructions in SETUP.md
 ```
+
+> [!IMPORTANT]
+> On first startup, an admin user is created automatically. Check the migration logs to retrieve the generated password:
+> ```bash
+> docker-compose logs backend | grep "Creating admin user"
+> ```
 
 ## 🤝 Contributing
 

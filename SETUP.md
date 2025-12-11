@@ -16,15 +16,31 @@ This guide will walk you through setting up re:memo on your system. Choose the d
 
 ### Authentication
 
+> [!NOTE]
+> re:memo now includes a built-in JWT-based authentication system. On first deployment, an admin user (ID 0) is created with a randomly generated password printed to the migration logs.
+
+**Key Features:**
+- JWT token-based authentication
+- Admin-controlled user management
+- User-scoped data isolation
+- Secure password hashing with bcrypt
+
+**Admin User Management:**
+Only the admin user (ID 0) can:
+- Register new users
+- Delete existing users
+- Reset user passwords
+- List all users
+
+**First-Time Setup:**
+1. Run migrations to create the admin user
+2. Check migration logs for the generated admin password
+3. Login with username `admin` and the generated password
+4. Change the admin password immediately via the reset password endpoint
+5. Create additional user accounts as needed
+
 > [!WARNING]
-> re:memo does not include built-in authentication. For production deployments, implement proper authentication and authorization.
-
-Recommended approaches:
-
-- **NGINX reverse proxy** with client certificates
-- **OAuth2 proxy** with your identity provider
-- **VPN-only access** for personal deployments
-- **Cloudflare Access** for cloud deployments
+> Self-registration is disabled. Only the admin user can create new accounts.
 
 ### Data Protection
 
@@ -81,7 +97,69 @@ See [Deployment Options](#deployment-options) for detailed instructions.
    docker-compose logs -f
    ```
 
-3. Navigate to `http://localhost:8080` and start journaling!
+3. Navigate to `http://localhost:8080` and login with the admin credentials!
+
+> [!NOTE]
+> On first startup, check the migration logs for the admin password:
+> ```bash
+> docker-compose logs backend | grep "MIGRATION"
+> ```
+
+## Authentication
+
+### Initial Setup
+
+On first deployment, the migration automatically creates an admin user:
+- **Username**: `admin`
+- **User ID**: 0
+- **Password**: Randomly generated (printed in migration logs)
+
+To retrieve your admin password:
+```bash
+docker-compose logs backend | grep "Creating admin user"
+```
+
+### User Management (Admin Only)
+
+The admin user can manage other users via API endpoints:
+
+**List all users:**
+```bash
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8080/api/auth/users
+```
+
+**Register a new user:**
+```bash
+curl -X POST -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"newuser","password":"securepass123"}' \
+  http://localhost:8080/api/auth/register
+```
+
+**Reset user password:**
+```bash
+curl -X POST -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"password":"newpassword123"}' \
+  http://localhost:8080/api/auth/users/USER_ID/reset-password
+```
+
+**Delete a user:**
+```bash
+curl -X DELETE -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  http://localhost:8080/api/auth/users/USER_ID
+```
+
+> [!NOTE]
+> The admin user (ID 0) cannot be deleted for security reasons.
+
+### Data Isolation
+
+All user data is strictly isolated:
+- Each user can only access their own journal entries, facts, and chat sessions
+- All database queries automatically filter by the authenticated user's ID
+- Vector search and AI features are scoped to the current user's data
 
 ## Configuration
 
@@ -96,6 +174,10 @@ OPENAI_API_KEY=sk-...        # Required for external OpenAI API
 OPENAI_BASE_URL=https://...  # Custom API endpoint (optional)
 DEFAULT_MODEL=gpt-4o-mini    # Model name
 
+# JWT Authentication
+JWT_SECRET_KEY=               # REQUIRED: Set a strong secret key for JWT tokens
+                             # Generate with: openssl rand -hex 32
+
 # AI Behavior
 SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
                                      # More customization options coming soon!
@@ -103,6 +185,12 @@ SYSTEM_PROMPT="Custom prompt..."     # Customize AI personality
 # Frontend Configuration
 VITE_API_BASE_URL=http://localhost:8080/api # Backend API endpoint
 ```
+
+> [!CAUTION]
+> The `JWT_SECRET_KEY` must be set before starting the application. Leave it blank in `.env.example` but set a strong random value in your actual `.env` file.
+
+> [!TIP]
+> Generate a secure JWT secret key with: `openssl rand -hex 32`
 
 > [!TIP]
 > For quick testing, use OpenAI's API with `LLM_PROVIDER=openai` and your API key. For maximum privacy, use `LLM_PROVIDER=ollama` with local models.
@@ -144,10 +232,8 @@ Deploy the `dist/` folder to your preferred web server (nginx, Cloudflare Pages,
 
 ### Backend Deployment Options
 
-> [!CAUTION]
-> re:memo does not include an authentication mechanism out-of-the-box. You will need to implement this yourself, especially if you plan to make it internet-accessible!
->
-> Consider using an NGINX reverse proxy with client certificate authentication or similar security measures.
+> [!NOTE]
+> All deployment options now require JWT authentication. The admin user is created automatically on first migration.
 
 #### Option A: Full Privacy (Local AI + Local Database)
 
