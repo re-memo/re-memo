@@ -134,6 +134,17 @@ const api = {
     },
 
     /**
+     * Change current user's password (self-service)
+     */
+    changePassword: async (currentPassword, newPassword) => {
+      const response = await apiClient.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword
+      });
+      return response.data;
+    },
+
+    /**
      * Logout - clear local storage
      */
     logout: () => {

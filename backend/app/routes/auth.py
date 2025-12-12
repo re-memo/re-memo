@@ -204,3 +204,48 @@ async def reset_password(target_user_id):
     except Exception as e:
         logger.error(f"Error resetting password: {str(e)}")
         return jsonify({"error": "Failed to reset password"}), 500
+
+
+@bp.route('/change-password', methods=['POST'])
+@require_auth
+async def change_password():
+    """Change current user's password. Requires current password for verification."""
+    try:
+        user_id = get_current_user_id()
+        data = await request.get_json()
+        
+        if not data or not data.get('current_password') or not data.get('new_password'):
+            return jsonify({"error": "Current password and new password are required"}), 400
+        
+        current_password = data['current_password']
+        new_password = data['new_password']
+        
+        # Validate new password
+        if len(new_password) < 6:
+            return jsonify({"error": "New password must be at least 6 characters"}), 400
+        
+        async with get_db_session() as session:
+            user = await User.get_by_id(session, user_id)
+            
+            if not user:
+                return jsonify({"error": "User not found"}), 404
+            
+            # Verify current password
+            if not user.verify_password(current_password):
+                return jsonify({"error": "Current password is incorrect"}), 401
+            
+            # Ensure new password is different
+            if user.verify_password(new_password):
+                return jsonify({"error": "New password must be different from current password"}), 400
+            
+            # Update password
+            user.password_hash = User.hash_password(new_password)
+            await session.commit()
+            
+            return jsonify({
+                "message": "Password changed successfully"
+            })
+            
+    except Exception as e:
+        logger.error(f"Error changing password: {str(e)}")
+        return jsonify({"error": "Failed to change password"}), 500

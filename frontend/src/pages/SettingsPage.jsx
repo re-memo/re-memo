@@ -37,11 +37,8 @@ const SettingsPage = ({ user, onPasswordChanged }) => {
 
     setLoading(true);
     try {
-      // Login with current password to verify
-      await api.auth.login(user.username, currentPassword);
-      
-      // Reset the password using the admin endpoint (or self-service if available)
-      await api.auth.resetPassword(user.id, newPassword);
+      // Use the self-service password change endpoint
+      await api.auth.changePassword(currentPassword, newPassword);
       
       toast.success("Password changed successfully");
       setCurrentPassword("");
