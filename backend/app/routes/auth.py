@@ -39,8 +39,8 @@ async def register():
             return jsonify({"error": "Username must be at most 100 characters"}), 400
         
         # Validate password
-        if len(password) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
         
         async with get_db_session() as session:
             # Check if username already exists
@@ -183,8 +183,8 @@ async def reset_password(target_user_id):
         password = data['password']
         
         # Validate password
-        if len(password) < 6:
-            return jsonify({"error": "Password must be at least 6 characters"}), 400
+        if len(password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters"}), 400
         
         async with get_db_session() as session:
             user = await User.get_by_id(session, target_user_id)
@@ -221,8 +221,8 @@ async def change_password():
         new_password = data['new_password']
         
         # Validate new password
-        if len(new_password) < 6:
-            return jsonify({"error": "New password must be at least 6 characters"}), 400
+        if len(new_password) < 8:
+            return jsonify({"error": "New password must be at least 8 characters"}), 400
         
         async with get_db_session() as session:
             user = await User.get_by_id(session, user_id)
