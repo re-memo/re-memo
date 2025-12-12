@@ -5,6 +5,8 @@ import AllJournalsPage from "@/pages/AllJournalsPage";
 import ChatPage from "@/pages/ChatPage";
 import JournalPage from "@/pages/JournalPage";
 import LoginPage from "@/pages/LoginPage";
+import SettingsPage from "@/pages/SettingsPage";
+import UserManagementPage from "@/pages/UserManagementPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserRouter, Route, Routes, useNavigate, Navigate } from "react-router-dom";
@@ -139,6 +141,14 @@ function App() {
                 <Route path="journal/:id" element={<JournalPage />} />
                 <Route path="chat" element={<ChatPage />} />
                 <Route path="chat/:sessionId" element={<ChatPage />} />
+                <Route 
+                  path="settings" 
+                  element={<SettingsPage user={user} />} 
+                />
+                <Route 
+                  path="users" 
+                  element={<UserManagementPage currentUser={user} />} 
+                />
               </Route>
 
               {/* Catch all - redirect to home or login */}

@@ -2,13 +2,14 @@ import { Button } from "@/components/ui/button";
 import { ROUTES } from "@/constants";
 import { cn } from "@/lib/utils";
 import { ARIA, useKeyboard, useScreenReader } from "@/utils/accessibility";
-import { Archive, Menu, MessageSquare, Plus, Star } from "lucide-react";
+import { Archive, Menu, MessageSquare, Plus, Settings, Star, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
+const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false, user }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const announce = useScreenReader();
+  const isAdmin = user?.id === 0;
 
   const mockJournals = [
     // { id: "2", title: "My hackathon win!", date: "30/7/2025", isSticky: false },
@@ -132,6 +133,39 @@ const LeftSidebar = ({ isOpen = true, onToggle, isMobile = false }) => {
           <p id="chat-help" className="sr-only">
             Open AI reflection chat
           </p>
+        </div>
+
+        {/* Settings Section */}
+        <div className="mt-6">
+          <div className="text-sm text-muted-foreground tracking-wide mb-2 px-4">
+            account.
+          </div>
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start text-left rounded-none",
+              location.pathname === "/settings" &&
+                "bg-accent text-accent-foreground border-l-4 border-blue-500"
+            )}
+            onClick={() => handleNavigation("/settings", "settings")}
+          >
+            <Settings size={16} className="mr-2" />
+            settings.
+          </Button>
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start text-left rounded-none",
+                location.pathname === "/users" &&
+                  "bg-accent text-accent-foreground border-l-4 border-blue-500"
+              )}
+              onClick={() => handleNavigation("/users", "user management")}
+            >
+              <Users size={16} className="mr-2" />
+              manage users.
+            </Button>
+          )}
         </div>
 
         {/* Favourite Notes Section */}
