@@ -78,6 +78,7 @@ const MainLayout = ({ user, onLogout }) => {
         isOpen={leftSidebarOpen}
         onToggle={() => setLeftSidebarOpen(!leftSidebarOpen)}
         isMobile={isMobile}
+        user={user}
       />
 
       {/* Main Content */}
