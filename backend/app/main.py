@@ -4,6 +4,8 @@ Main Quart application entry point for re:memo backend.
 
 from quart import Quart, jsonify
 from quart_cors import cors
+from quart_rate_limiter import RateLimiter, rate_limit
+from datetime import timedelta
 import os
 import logging
 from app.config.settings import settings
@@ -22,8 +24,13 @@ def create_app() -> Quart:
     # Load configuration
     app.config.update(settings.model_dump())
     
-    # Enable CORS
-    app = cors(app, allow_origin="*")
+    # Enable CORS with allowed origins from configuration
+    allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
+    app = cors(app, allow_origin=allowed_origins)
+    
+    # Initialize rate limiter
+    limiter = RateLimiter(app, key_func=lambda: "global", storage_uri="memory://")
+    app.limiter = limiter
     
     # Initialize database
     init_db(app)

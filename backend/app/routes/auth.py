@@ -2,7 +2,9 @@
 Authentication API routes.
 """
 
-from quart import Blueprint, request, jsonify, g
+from quart import Blueprint, request, jsonify, g, current_app
+from quart_rate_limiter import rate_limit
+from datetime import timedelta
 import logging
 from app.models.database import get_db_session
 from app.models.user import User
@@ -63,8 +65,9 @@ async def register():
 
 
 @bp.route('/login', methods=['POST'])
+@rate_limit(1, timedelta(seconds=1))
 async def login():
-    """Login and get JWT token."""
+    """Login and get JWT token. Rate limited to 1 request per second."""
     try:
         data = await request.get_json()
         

@@ -1,6 +1,7 @@
 # Web Framework
 quart
 quart-cors
+quart-rate-limiter
 
 # Authentication
 PyJWT

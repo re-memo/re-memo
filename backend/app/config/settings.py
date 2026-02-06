@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     SYSTEM_PROMPT: str = "You are a helpful AI assistant for journaling and self-reflection."
     MAX_FACTS_PER_ENTRY: int = 20
     
+    # CORS Configuration
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Validate JWT_SECRET_KEY is set
