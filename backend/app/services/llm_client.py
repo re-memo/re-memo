@@ -99,7 +99,7 @@ class LLMClient:
             
             # Use configurable base-URL (works with Requesty, Azure, etc.)
             base_url = self.settings.OPENAI_BASE_URL.rstrip("/")
-            url = f"{base_url}/chat/completions"
+            url = f"{base_url}/chat/completions?api-version=2025-01-01-preview"
 
             headers = {
                 "Authorization": f"Bearer {self.settings.OPENAI_API_KEY}",

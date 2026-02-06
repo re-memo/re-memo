@@ -19,12 +19,14 @@ def run_alembic_command(cmd):
     """Run an Alembic command and handle errors."""
     try:
         logger.info(f"Running: {' '.join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=Path(__file__).parent)
-        
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, cwd=Path(__file__).parent
+        )
+
         if result.returncode != 0:
             logger.error(f"❌ Alembic command failed: {result.stdout} {result.stderr}")
             raise Exception(f"Alembic command failed: {result.stdout} {result.stderr}")
-        
+
         logger.info(result.stdout)
         return result.stdout
     except Exception as e:
@@ -36,15 +38,18 @@ async def run_migrations():
     """Run database migrations using Alembic."""
     try:
         logger.info("🔄 Running database migrations with Alembic...")
-        
+
+        # Get path to alembic.ini relative to this script
+        alembic_ini = str(Path(__file__).parent / "alembic.ini")
+
         # Check current revision
-        run_alembic_command(["alembic", "current"])
-        
+        run_alembic_command(["alembic", "-c", alembic_ini, "current"])
+
         # Run migrations
-        run_alembic_command(["alembic", "upgrade", "head"])
-        
+        run_alembic_command(["alembic", "-c", alembic_ini, "upgrade", "head"])
+
         logger.info("✅ Database migrations completed successfully")
-        
+
     except Exception as e:
         logger.error(f"❌ Error running migrations: {e}")
         raise
@@ -54,9 +59,9 @@ async def main():
     """Main migration function."""
     logger.info("🚀 Starting database migration with Alembic...")
     logger.info(f"📊 Database URL: {settings.database_url}")
-    
+
     await run_migrations()
-    
+
     logger.info("✅ Database migration completed successfully!")
     logger.info("💡 Use 'python alembic_manager.py' for future schema changes")
 

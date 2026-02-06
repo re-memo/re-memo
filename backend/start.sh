@@ -89,4 +89,4 @@ python migrate.py
 
 # Start the application
 echo "🎯 Starting Quart application..."
-exec python -m uvicorn app.main:create_app --factory --host 0.0.0.0 --port 80
+exec python -m uvicorn app.main:create_app --factory --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8080}

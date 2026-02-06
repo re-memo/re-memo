@@ -2,7 +2,7 @@
 Main Quart application entry point for re:memo backend.
 """
 
-from quart import Quart, jsonify
+from quart import Quart, jsonify, request
 from quart_cors import cors
 from quart_rate_limiter import RateLimiter, rate_limit
 from datetime import timedelta
@@ -20,21 +20,27 @@ logger = logging.getLogger(__name__)
 def create_app() -> Quart:
     """Create and configure the Quart application."""
     app = Quart(__name__)
-    
+
     # Load configuration
     app.config.update(settings.model_dump())
-    
+
     # Enable CORS with allowed origins from configuration
     allowed_origins = [origin.strip() for origin in settings.ALLOWED_ORIGINS.split(",")]
     app = cors(app, allow_origin=allowed_origins)
-    
+
     # Initialize rate limiter
-    limiter = RateLimiter(app, key_func=lambda: "global", storage_uri="memory://")
+    async def rate_limit_key() -> str:
+        forwarded_for = request.headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip() or "anonymous"
+        return request.remote_addr or "anonymous"
+
+    limiter = RateLimiter(app, key_function=rate_limit_key)
     app.limiter = limiter
-    
+
     # Initialize database
     init_db(app)
-    
+
     @app.before_serving
     async def startup():
         """Initialize services before serving requests."""
@@ -45,46 +51,38 @@ def create_app() -> Quart:
         except Exception as e:
             logger.error(f"Failed to start application: {str(e)}")
             raise
-    
+
     # Register blueprints
-    app.register_blueprint(auth.bp, url_prefix='/api/auth')
-    app.register_blueprint(journal.bp, url_prefix='/api/journal')
-    app.register_blueprint(ai.bp, url_prefix='/api/ai')
-    app.register_blueprint(chat.bp, url_prefix='/api/chat')
-    
-    @app.route('/api/health')
+    app.register_blueprint(auth.bp, url_prefix="/api/auth")
+    app.register_blueprint(journal.bp, url_prefix="/api/journal")
+    app.register_blueprint(ai.bp, url_prefix="/api/ai")
+    app.register_blueprint(chat.bp, url_prefix="/api/chat")
+
+    @app.route("/api/health")
     async def health_check():
         """Health check endpoint."""
-        return jsonify({
-            "status": "healthy",
-            "service": "re:memo-backend",
-            "version": "1.0.0"
-        })
-    
-    @app.route('/health')
+        return jsonify(
+            {"status": "healthy", "service": "re:memo-backend", "version": "1.0.0"}
+        )
+
+    @app.route("/health")
     async def health_check_root():
         """Health check endpoint at root level for Docker."""
-        return jsonify({
-            "status": "healthy",
-            "service": "re:memo-backend",
-            "version": "1.0.0"
-        })
-    
+        return jsonify(
+            {"status": "healthy", "service": "re:memo-backend", "version": "1.0.0"}
+        )
+
     @app.errorhandler(404)
     async def not_found(error):
         return jsonify({"error": "Not found"}), 404
-    
+
     @app.errorhandler(500)
     async def internal_error(error):
         return jsonify({"error": "Internal server error"}), 500
-    
+
     return app
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app = create_app()
-    app.run(
-        host=settings.APP_HOST,
-        port=settings.APP_PORT,
-        debug=settings.DEBUG
-    )
+    app.run(host=settings.APP_HOST, port=settings.APP_PORT, debug=settings.DEBUG)

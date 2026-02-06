@@ -9,41 +9,44 @@ import os
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
-    
+
     # Database configuration
     DB_HOST: str = "postgres"
     DB_PORT: int = 5432
     DB_NAME: str = "rememo"
     DB_USER: str = "rememo_user"
     DB_PASSWORD: str = "rememo_password"
-    
+
     # LLM Configuration
     LLM_PROVIDER: str = "ollama"  # ollama or openai
     OLLAMA_URL: str = "http://ollama:11434"
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_BASE_URL: str = "https://api.openai.com/v1"
     DEFAULT_MODEL: str = "llama3.1"
-    
+
     # App Configuration
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 80
     DEBUG: bool = False
-    SECRET_KEY: str = "your-secret-key-change-this"
-    
+
     # JWT Configuration - No default for secret key to force explicit configuration
     JWT_SECRET_KEY: str = os.environ.get("JWT_SECRET_KEY", "")
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_HOURS: int = 24
-    
+
     # AI Configuration
     EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
-    EMBEDDING_DIMENSION: int = 384  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
-    SYSTEM_PROMPT: str = "You are a helpful AI assistant for journaling and self-reflection."
+    EMBEDDING_DIMENSION: int = (
+        384  # Vector dimension for embeddings (1536 for OpenAI, 384 for all-MiniLM-L6-v2)
+    )
+    SYSTEM_PROMPT: str = (
+        "You are a helpful AI assistant for journaling and self-reflection."
+    )
     MAX_FACTS_PER_ENTRY: int = 20
-    
+
     # CORS Configuration
     ALLOWED_ORIGINS: str = "http://localhost:3000"
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Validate JWT_SECRET_KEY is set
@@ -52,7 +55,7 @@ class Settings(BaseSettings):
                 "JWT_SECRET_KEY environment variable must be set. "
                 "Generate a secure random key for production use."
             )
-    
+
     @property
     def database_url(self) -> str:
         """Get the database URL for SQLAlchemy."""
@@ -62,6 +65,7 @@ class Settings(BaseSettings):
     def sync_database_url(self) -> str:
         """Get the synchronous database URL for SQLAlchemy."""
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+
 
 # Global settings instance
 settings = Settings()
