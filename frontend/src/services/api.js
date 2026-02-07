@@ -247,6 +247,17 @@ const api = {
   // AI operations
   ai: {
     /**
+     * Get reflection and related notes based on query
+     */
+    getReflection: async (query, limit = 5) => {
+      const response = await apiClient.post('/ai/get-reflection', {
+        query,
+        limit
+      });
+      return response.data;
+    },
+
+    /**
      * Process an entry to extract facts
      */
     processEntry: async (entryId) => {

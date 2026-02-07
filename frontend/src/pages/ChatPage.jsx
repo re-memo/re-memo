@@ -2,8 +2,8 @@ import { ErrorMessage } from "@/components/ErrorBoundary";
 import { ChatBubble } from "@/components/ui/chat-bubble";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useAsyncOperation } from "@/hooks/useCommon";
 import { useMemoizedValue, useThrottle } from "@/hooks/usePerformance";
+import api from "@/services/api";
 import { useKeyboard, useScreenReader } from "@/utils/accessibility";
 import { formatDate } from "@/utils/helpers";
 import { RateLimiter, validateSearchQuery } from "@/utils/security";
@@ -32,8 +32,10 @@ const ChatPage = () => {
   const [selectedNote, setSelectedNote] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Async operations
-  const { isLoading, error, execute: executeReflection } = useAsyncOperation();
+  // States for async operations
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  
   const announce = useScreenReader();
 
   // Memoized heatmap data generation for performance
@@ -88,28 +90,25 @@ const ChatPage = () => {
       return;
     }
 
+    setIsLoading(true);
+    setError(null);
+
     try {
-      await executeReflection(async () => {
-        // Clear previous results
-        setReflection("");
-        setCards([]);
+      // Clear previous results
+      setReflection("");
+      setCards([]);
 
-        const resp = await fetch(`/api/ai/get-reflection`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: sanitized, limit: 5 }),
-        });
+      const data = await api.ai.getReflection(sanitized, 5);
 
-        if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
-        const data = await resp.json();
-
-        setReflection(data.reflection || "");
-        setCards(data.notes || []);
-        announce(`Found ${data.notes?.length || 0} related notes`, "polite");
-      });
+      setReflection(data.reflection || "");
+      setCards(data.notes || []);
+      announce(`Found ${data.notes?.length || 0} related notes`, "polite");
     } catch (err) {
       console.error("Error fetching reflection:", err);
+      setError(err);
       announce("Failed to fetch reflection", "assertive");
+    } finally {
+      setIsLoading(false);
     }
   }, 2000);
 
